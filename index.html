@@ -1277,7 +1277,7 @@
   <!-- ═══════ iOS 설치 안내 모달 — body 직접 자식 (z-index 충돌 방지) ═══════ -->
   <div id="ios-install-modal" style="display:none;">
     <!-- 반투명 배경 -->
-    <div id="ios-modal-bg" style="
+    <div id="ios-modal-bg" onclick="closeIosModal()" style="
         position:fixed;inset:0;
         z-index:2147483640;
         background:rgba(0,0,0,0.6);
@@ -1299,7 +1299,7 @@
         <div style="flex:1;display:flex;justify-content:center;">
           <div style="width:36px;height:4px;background:#e0e0e0;border-radius:2px;"></div>
         </div>
-        <button id="ios-modal-close-x" style="
+        <button id="ios-modal-close-x" onclick="closeIosModal()" style="
             background:#f0f0f0;border:none;border-radius:50%;
             width:30px;height:30px;font-size:16px;cursor:pointer;
             display:flex;align-items:center;justify-content:center;color:#555;
@@ -1396,7 +1396,7 @@
   <!-- ═══════ Android 설치 안내 모달 — body 직접 자식 ═══════ -->
   <div id="android-install-modal" style="display:none;">
     <!-- 반투명 배경 -->
-    <div id="android-modal-bg" style="
+    <div id="android-modal-bg" onclick="closeAndroidModal()" style="
         position:fixed;inset:0;
         z-index:2147483640;
         background:rgba(0,0,0,0.6);
@@ -1418,7 +1418,7 @@
         <div style="flex:1;display:flex;justify-content:center;">
           <div style="width:36px;height:4px;background:#e0e0e0;border-radius:2px;"></div>
         </div>
-        <button id="android-modal-close-x" style="
+        <button id="android-modal-close-x" onclick="closeAndroidModal()" style="
             background:#f0f0f0;border:none;border-radius:50%;
             width:30px;height:30px;font-size:16px;cursor:pointer;
             display:flex;align-items:center;justify-content:center;color:#555;
