@@ -2521,6 +2521,7 @@
   <script src="js/app.js"></script>
 
   <!-- ═══════ PWA 설치 안내 배너 ═══════ -->
+  <!-- Android Chrome: beforeinstallprompt로 자동 표시 -->
   <div id="pwa-install-banner" style="display:none;" role="banner" aria-label="앱 설치 안내">
     <div class="pwa-banner-icon">
       <img src="icons/icon.svg" alt="ECLADO 아이콘" width="44" height="44" />
@@ -2531,6 +2532,18 @@
     </div>
     <button id="pwa-install-btn" class="pwa-install-accept">설치</button>
     <button id="pwa-install-dismiss" class="pwa-install-dismiss" aria-label="닫기">✕</button>
+  </div>
+
+  <!-- iOS Safari: 홈 화면 추가 안내 배너 -->
+  <div id="pwa-ios-banner" style="display:none;" role="banner" aria-label="iOS 홈 화면 추가 안내">
+    <div class="pwa-banner-icon">
+      <img src="icons/icon.svg" alt="ECLADO 아이콘" width="44" height="44" />
+    </div>
+    <div class="pwa-banner-text">
+      <strong>iPhone/iPad (iOS Safari)</strong>
+      <span>하단 공유(□↑) 버튼 → <b>"홈 화면에 추가"</b> → 추가</span>
+    </div>
+    <button id="pwa-ios-dismiss" class="pwa-install-dismiss" aria-label="닫기">✕</button>
   </div>
 
   <!-- PWA 업데이트 알림 -->
@@ -2664,20 +2677,41 @@
       setTimeout(() => t.remove(), 3000);
     }
 
-    /* ── iOS 전용 안내 (beforeinstallprompt 미지원) ── */
+    /* ── iOS 전용 안내 배너 (beforeinstallprompt 미지원) ── */
     const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isInStandalone = window.navigator.standalone;
-    if (isIos && !isInStandalone && !dismissed) {
+    const iosBanner   = document.getElementById('pwa-ios-banner');
+    const iosDismiss  = document.getElementById('pwa-ios-dismiss');
+    const iosDismissed = sessionStorage.getItem('pwa-ios-banner-dismissed');
+
+    if (isIos && !isInStandalone && !iosDismissed) {
       setTimeout(() => {
-        if (installBanner) {
-          installBanner.querySelector('.pwa-banner-text strong').textContent = 'iPhone/iPad에서 홈 화면 추가';
-          installBanner.querySelector('.pwa-banner-text span').textContent   = '하단 공유 버튼 → "홈 화면에 추가" 탭!';
-          if (installBtn) installBtn.style.display = 'none'; // iOS는 버튼 없이 안내만
-          installBanner.style.display = 'flex';
-          requestAnimationFrame(() => installBanner.classList.add('pwa-banner-show'));
+        if (iosBanner) {
+          iosBanner.style.display = 'flex';
+          requestAnimationFrame(() => iosBanner.classList.add('pwa-banner-show'));
         }
       }, 2000);
     }
+
+    if (iosDismiss) {
+      iosDismiss.addEventListener('click', () => {
+        sessionStorage.setItem('pwa-ios-banner-dismissed', '1');
+        hideBanner(iosBanner);
+      });
+    }
+
+    /* ── Android Chrome: 로그인 후 설치 배너 표시 트리거 ── */
+    // beforeinstallprompt 이벤트는 위 Android 배너가 자동 처리
+    // 로그인 완료 후 배너를 띄우려면 app.js에서 window.dispatchEvent(new Event('eclado-logged-in')) 발생
+    window.addEventListener('eclado-logged-in', () => {
+      if (deferredPrompt && !dismissed && installBanner &&
+          !window.matchMedia('(display-mode: standalone)').matches) {
+        setTimeout(() => {
+          installBanner.style.display = 'flex';
+          requestAnimationFrame(() => installBanner.classList.add('pwa-banner-show'));
+        }, 1000);
+      }
+    });
 
   })();
   </script>

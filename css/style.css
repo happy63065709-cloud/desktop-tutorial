@@ -3006,6 +3006,7 @@ body.sidebar-open {
    ============================================================ */
 
 #pwa-install-banner,
+#pwa-ios-banner,
 #pwa-update-banner {
   position: fixed;
   bottom: 24px;
@@ -3027,7 +3028,16 @@ body.sidebar-open {
   pointer-events: none;
 }
 
+/* iOS 배너: 상단에서 내려오는 방식 (공유 버튼이 하단에 있어서 배너는 상단 표시) */
+#pwa-ios-banner {
+  bottom: auto;
+  top: 16px;
+  transform: translateX(-50%) translateY(-120px);
+  border-left: 4px solid #1B3A6B;
+}
+
 #pwa-install-banner.pwa-banner-show,
+#pwa-ios-banner.pwa-banner-show,
 #pwa-update-banner.pwa-banner-show {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
@@ -3035,10 +3045,16 @@ body.sidebar-open {
 }
 
 #pwa-install-banner.pwa-banner-hide,
+#pwa-ios-banner.pwa-banner-hide,
 #pwa-update-banner.pwa-banner-hide {
   transform: translateX(-50%) translateY(120px);
   opacity: 0;
   pointer-events: none;
+}
+
+/* iOS 배너 숨길 때는 위로 */
+#pwa-ios-banner.pwa-banner-hide {
+  transform: translateX(-50%) translateY(-120px);
 }
 
 .pwa-banner-icon {
@@ -3118,6 +3134,12 @@ body.sidebar-open {
   #pwa-install-banner,
   #pwa-update-banner {
     bottom: 16px;
+    border-radius: 12px;
+  }
+  /* iOS 배너는 상단 고정 */
+  #pwa-ios-banner {
+    top: 12px;
+    bottom: auto;
     border-radius: 12px;
   }
 }

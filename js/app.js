@@ -5366,6 +5366,9 @@ function handleLogin() {
     const roleLabels = { admin1: '관리자 1', admin2: '관리자 2', member: '일반 멤버' };
     toast(`${roleLabels[selectedRole]}로 로그인되었습니다. 환영합니다! 👋`, 'success');
 
+    // Android Chrome: 로그인 후 PWA 설치 배너 트리거
+    window.dispatchEvent(new Event('eclado-logged-in'));
+
     // 비밀번호 초기화
     const pwEl = document.getElementById('login-password');
     if (pwEl) pwEl.value = '';
