@@ -6,20 +6,22 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#1B2A45" />
   <title>ECLADO Cowork</title>
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json" />
 
-  <!-- iOS 홈 화면 아이콘 -->
-  <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
+  <!-- iOS 홈 화면 아이콘 (PNG 우선 - SVG는 iOS 미지원) -->
   <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="apple-mobile-web-app-title" content="ECLADO" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
   <!-- 파비콘 -->
-  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   <!-- 폰트: display=swap으로 렌더링 차단 최소화, 필요한 weight만 로드 -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -2589,27 +2591,51 @@
       });
     }
 
-    /* ── 설치 배너 (beforeinstallprompt) ── */
-    let deferredPrompt = null;
-    const installBanner  = document.getElementById('pwa-install-banner');
-    const installBtn     = document.getElementById('pwa-install-btn');
-    const dismissBtn     = document.getElementById('pwa-install-dismiss');
+    /* ════════════════════════════════════════
+       PWA 설치 배너 로직
+       - Android Chrome : beforeinstallprompt → 로그인 후 하단 배너
+       - iOS Safari     : 항상 상단 배너 (공유 버튼 안내)
+       ════════════════════════════════════════ */
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                      || window.navigator.standalone === true;
 
-    // 이미 설치한 경우 배너 숨김
-    const dismissed = sessionStorage.getItem('pwa-banner-dismissed');
+    /* ── 헬퍼 함수 ── */
+    function showBanner(el) {
+      if (!el || isStandalone) return;
+      el.style.display = 'flex';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => el.classList.add('pwa-banner-show'));
+      });
+    }
+    function hideBanner(el) {
+      if (!el) return;
+      el.classList.remove('pwa-banner-show');
+      el.classList.add('pwa-banner-hide');
+      setTimeout(() => { el.style.display = 'none'; el.classList.remove('pwa-banner-hide'); }, 350);
+    }
+    function showToastPwa(msg) {
+      if (typeof toast === 'function') { toast(msg, 'success'); return; }
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    /* ── Android Chrome: beforeinstallprompt ── */
+    let deferredPrompt = null;
+    const installBanner = document.getElementById('pwa-install-banner');
+    const installBtn    = document.getElementById('pwa-install-btn');
+    const dismissBtn    = document.getElementById('pwa-install-dismiss');
+    const dismissed     = localStorage.getItem('pwa-banner-dismissed');  // sessionStorage → localStorage로 변경
 
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
-      if (!dismissed && installBanner) {
-        // 1.5초 후 부드럽게 표시
-        setTimeout(() => {
-          installBanner.style.display = 'flex';
-          requestAnimationFrame(() => installBanner.classList.add('pwa-banner-show'));
-        }, 1500);
-      }
+      console.log('[PWA] beforeinstallprompt 수신 - 설치 가능');
     });
 
+    // 설치 버튼 클릭
     if (installBtn) {
       installBtn.addEventListener('click', async () => {
         if (!deferredPrompt) return;
@@ -2623,19 +2649,18 @@
         }
       });
     }
-
     if (dismissBtn) {
       dismissBtn.addEventListener('click', () => {
-        sessionStorage.setItem('pwa-banner-dismissed', '1');
+        localStorage.setItem('pwa-banner-dismissed', '1');
         hideBanner(installBanner);
       });
     }
 
-    // 이미 standalone으로 실행 중이면 배너 불필요
-    if (window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true) {
-      if (installBanner) installBanner.style.display = 'none';
-    }
+    // 로그인 후 Android 설치 배너 표시
+    window.addEventListener('eclado-logged-in', () => {
+      if (!deferredPrompt || dismissed || isStandalone) return;
+      setTimeout(() => showBanner(installBanner), 1200);
+    });
 
     /* ── 업데이트 배너 ── */
     const updateBanner  = document.getElementById('pwa-update-banner');
@@ -2644,8 +2669,7 @@
 
     function showUpdateBanner(worker) {
       if (!updateBanner) return;
-      updateBanner.style.display = 'flex';
-      requestAnimationFrame(() => updateBanner.classList.add('pwa-banner-show'));
+      showBanner(updateBanner);
       if (updateBtn) {
         updateBtn.addEventListener('click', () => {
           worker.postMessage({ type: 'SKIP_WAITING' });
@@ -2653,64 +2677,35 @@
         });
       }
     }
-
     if (updateDismiss) {
       updateDismiss.addEventListener('click', () => hideBanner(updateBanner));
     }
 
-    /* ── 헬퍼 ── */
-    function hideBanner(el) {
-      if (!el) return;
-      el.classList.remove('pwa-banner-show');
-      el.classList.add('pwa-banner-hide');
-      setTimeout(() => { el.style.display = 'none'; el.classList.remove('pwa-banner-hide'); }, 350);
-    }
+    /* ── iOS Safari: 홈 화면 추가 안내 배너 ── */
+    const isIos        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const iosBanner    = document.getElementById('pwa-ios-banner');
+    const iosDismiss   = document.getElementById('pwa-ios-dismiss');
+    const iosDismissed = localStorage.getItem('pwa-ios-banner-dismissed');
 
-    function showToastPwa(msg) {
-      // app.js의 toast() 함수 재활용
-      if (typeof toast === 'function') { toast(msg, 'success'); return; }
-      const t = document.createElement('div');
-      t.textContent = msg;
-      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;';
-      document.body.appendChild(t);
-      setTimeout(() => t.remove(), 3000);
-    }
-
-    /* ── iOS 전용 안내 배너 (beforeinstallprompt 미지원) ── */
-    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isInStandalone = window.navigator.standalone;
-    const iosBanner   = document.getElementById('pwa-ios-banner');
-    const iosDismiss  = document.getElementById('pwa-ios-dismiss');
-    const iosDismissed = sessionStorage.getItem('pwa-ios-banner-dismissed');
-
-    if (isIos && !isInStandalone && !iosDismissed) {
+    if (isIos && !isStandalone && !iosDismissed) {
+      // 로그인 후 표시 (eclado-logged-in 이벤트)
+      window.addEventListener('eclado-logged-in', () => {
+        setTimeout(() => showBanner(iosBanner), 1500);
+      });
+      // 로그인 이벤트 없이 3초 후에도 표시 (폴백)
       setTimeout(() => {
-        if (iosBanner) {
-          iosBanner.style.display = 'flex';
-          requestAnimationFrame(() => iosBanner.classList.add('pwa-banner-show'));
+        if (iosBanner && iosBanner.style.display === 'none') {
+          showBanner(iosBanner);
         }
-      }, 2000);
+      }, 3000);
     }
 
     if (iosDismiss) {
       iosDismiss.addEventListener('click', () => {
-        sessionStorage.setItem('pwa-ios-banner-dismissed', '1');
+        localStorage.setItem('pwa-ios-banner-dismissed', '1');
         hideBanner(iosBanner);
       });
     }
-
-    /* ── Android Chrome: 로그인 후 설치 배너 표시 트리거 ── */
-    // beforeinstallprompt 이벤트는 위 Android 배너가 자동 처리
-    // 로그인 완료 후 배너를 띄우려면 app.js에서 window.dispatchEvent(new Event('eclado-logged-in')) 발생
-    window.addEventListener('eclado-logged-in', () => {
-      if (deferredPrompt && !dismissed && installBanner &&
-          !window.matchMedia('(display-mode: standalone)').matches) {
-        setTimeout(() => {
-          installBanner.style.display = 'flex';
-          requestAnimationFrame(() => installBanner.classList.add('pwa-banner-show'));
-        }, 1000);
-      }
-    });
 
   })();
   </script>
