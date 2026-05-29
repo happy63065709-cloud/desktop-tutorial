@@ -1233,6 +1233,64 @@
         </p>
       </div>
 
+      <!-- ── 홈 화면에 추가 섹션 ── -->
+      <div id="pwa-login-section" style="margin-top:18px;padding-top:16px;border-top:1px solid #eee;">
+        <p style="text-align:center;font-size:12px;color:#888;margin:0 0 10px;">
+          <i class="fas fa-mobile-alt" style="color:#1B3A6B;margin-right:4px;"></i>
+          앱처럼 홈 화면에서 바로 실행하세요
+        </p>
+
+        <!-- Android Chrome: 설치 버튼 -->
+        <button id="pwa-login-install-btn" style="
+            display:none;width:100%;padding:12px;border:none;border-radius:12px;
+            background:#1B3A6B;color:#fff;font-size:14px;font-weight:700;
+            cursor:pointer;align-items:center;justify-content:center;gap:8px;
+            box-shadow:0 4px 12px rgba(27,58,107,.3);">
+          <i class="fas fa-download"></i> 홈 화면에 추가 (Android)
+        </button>
+
+        <!-- iOS Safari: 단계별 안내 -->
+        <div id="pwa-login-ios-guide" style="display:none;">
+          <div style="
+              background:#f0f4ff;border-radius:12px;padding:12px 14px;
+              border:1px solid #d0dcff;">
+            <p style="font-size:12px;font-weight:700;color:#1B3A6B;margin:0 0 8px;">
+              <i class="fab fa-apple" style="margin-right:5px;"></i>iPhone / iPad 홈 화면 추가
+            </p>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#444;">
+                <span style="
+                    width:22px;height:22px;border-radius:50%;background:#1B3A6B;
+                    color:#fff;font-weight:700;font-size:11px;
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>
+                하단 공유 버튼
+                <span style="
+                    display:inline-flex;align-items:center;justify-content:center;
+                    width:28px;height:28px;background:#007AFF;border-radius:6px;color:#fff;font-size:15px;">
+                  ⬆️
+                </span>
+                탭하기
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#444;">
+                <span style="
+                    width:22px;height:22px;border-radius:50%;background:#1B3A6B;
+                    color:#fff;font-weight:700;font-size:11px;
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>
+                <b style="color:#1B3A6B;">"홈 화면에 추가"</b> 선택 후 추가 탭
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 일반 브라우저 안내 -->
+        <div id="pwa-login-generic-guide" style="
+            background:#f8f9fa;border-radius:12px;padding:11px 14px;
+            border:1px dashed #ddd;font-size:12px;color:#666;text-align:center;">
+          <i class="fas fa-info-circle" style="color:#1B3A6B;margin-right:5px;"></i>
+          Chrome 또는 Safari 브라우저로 접속하면<br>홈 화면에 앱 아이콘을 추가할 수 있어요
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -2646,18 +2704,72 @@
     }
 
     /* ════════════════════════════════════════
-       PWA 홈 화면 추가 안내 모달 로직
+       PWA 홈 화면 추가 로직
        ════════════════════════════════════════ */
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                       || window.navigator.standalone === true;
     const isIos        = /iphone|ipad|ipod/i.test(navigator.userAgent);
     let   deferredPrompt = null;
 
+    /* ── 로그인 화면 PWA 섹션 초기화 ── */
+    function initLoginPwaSection() {
+      const section     = document.getElementById('pwa-login-section');
+      const installBtn  = document.getElementById('pwa-login-install-btn');
+      const iosGuide    = document.getElementById('pwa-login-ios-guide');
+      const genericGuide= document.getElementById('pwa-login-generic-guide');
+      if (!section) return;
+
+      // 이미 standalone(설치됨) 상태면 섹션 숨김
+      if (isStandalone) { section.style.display = 'none'; return; }
+
+      if (isIos) {
+        // iOS Safari: 단계 안내 표시
+        if (iosGuide)     iosGuide.style.display     = 'block';
+        if (genericGuide) genericGuide.style.display = 'none';
+      } else if (deferredPrompt) {
+        // Android Chrome: 설치 버튼 표시
+        if (installBtn)   installBtn.style.display   = 'flex';
+        if (genericGuide) genericGuide.style.display = 'none';
+      }
+      // 그 외 브라우저: genericGuide 기본 표시 유지
+    }
+
     /* ── Android 설치 프롬프트 캡처 ── */
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
       console.log('[PWA] 설치 가능 (Android)');
+      // 이미 로그인 화면이 열려있으면 버튼 즉시 업데이트
+      const installBtn  = document.getElementById('pwa-login-install-btn');
+      const genericGuide= document.getElementById('pwa-login-generic-guide');
+      if (installBtn && !isStandalone) {
+        installBtn.style.display   = 'flex';
+        if (genericGuide) genericGuide.style.display = 'none';
+      }
+    });
+
+    /* ── Android 설치 버튼 클릭 ── */
+    document.addEventListener('click', async e => {
+      if (!e.target.closest('#pwa-login-install-btn')) return;
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if (outcome === 'accepted') {
+        // 설치 완료 → 버튼을 완료 메시지로 교체
+        const btn = document.getElementById('pwa-login-install-btn');
+        if (btn) {
+          btn.innerHTML = '<i class="fas fa-check-circle"></i> 홈 화면에 추가되었습니다! 🎉';
+          btn.style.background = '#38a169';
+          btn.disabled = true;
+        }
+      }
+    });
+
+    /* ── 페이지 로드 시 초기화 ── */
+    window.addEventListener('load', () => {
+      // 약간 지연 후 실행 (beforeinstallprompt 수신 대기)
+      setTimeout(initLoginPwaSection, 800);
     });
 
     /* ── 모달 열기/닫기 ── */
