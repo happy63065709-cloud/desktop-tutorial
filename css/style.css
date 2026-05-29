@@ -6365,3 +6365,28 @@ span.task-detail-upload-btn {
 .sidebar, .mobile-top-bar, .sidebar-toggle {
   visibility: visible;
 }
+
+/* ════════════════════════════════════════
+   PWA 홈 화면 추가 FAB 버튼 애니메이션
+   ════════════════════════════════════════ */
+@keyframes pwa-fab-bounce {
+  0%, 100% { transform: translateY(0);    box-shadow: 0 4px 16px rgba(27,58,107,.4); }
+  50%       { transform: translateY(-5px); box-shadow: 0 8px 24px rgba(27,58,107,.5); }
+}
+
+#pwa-fab {
+  animation: pwa-fab-bounce 2.5s ease-in-out infinite;
+  transition: background .2s;
+}
+#pwa-fab:hover,
+#pwa-fab:active {
+  background: #2A5298 !important;
+  animation: none;
+}
+
+/* 모달 오버레이 */
+#pwa-guide-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999990;
+}

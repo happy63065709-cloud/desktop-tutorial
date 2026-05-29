@@ -2521,31 +2521,81 @@
 
   <script src="js/app.js"></script>
 
-  <!-- ═══════ PWA 설치 안내 배너 ═══════ -->
-  <!-- Android Chrome: beforeinstallprompt로 자동 표시 -->
-  <div id="pwa-install-banner" style="display:none;" role="banner" aria-label="앱 설치 안내">
-    <div class="pwa-banner-icon">
-      <img src="icons/icon.svg" alt="ECLADO 아이콘" width="44" height="44" />
+  <!-- ═══════ PWA 홈 화면 추가 안내 모달 ═══════ -->
+  <div id="pwa-guide-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="홈 화면 추가 안내">
+    <!-- 배경 오버레이 -->
+    <div id="pwa-guide-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:999990;"></div>
+    <!-- 모달 본체 -->
+    <div id="pwa-guide-box" style="
+      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.92);
+      z-index:999991;background:#fff;border-radius:20px;
+      width:min(88vw,360px);max-height:88vh;overflow:hidden;
+      display:flex;flex-direction:column;
+      box-shadow:0 20px 60px rgba(0,0,0,0.35);
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .25s ease;
+      opacity:0;">
+      <!-- 헤더 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid #eee;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="icons/icon-192.png" alt="ECLADO" style="width:36px;height:36px;border-radius:8px;" />
+          <div>
+            <div style="font-weight:700;font-size:15px;color:#1B3A6B;">홈 화면에 추가</div>
+            <div style="font-size:11px;color:#888;">앱처럼 바로 사용하세요</div>
+          </div>
+        </div>
+        <button id="pwa-guide-close" style="background:none;border:none;font-size:20px;color:#999;cursor:pointer;padding:4px 8px;border-radius:8px;line-height:1;" aria-label="닫기">✕</button>
+      </div>
+      <!-- 탭 선택 -->
+      <div style="display:flex;border-bottom:1px solid #eee;flex-shrink:0;">
+        <button id="pwa-tab-ios" onclick="pwaSwitchTab('ios')" style="
+          flex:1;padding:11px 8px;border:none;background:none;cursor:pointer;
+          font-size:13px;font-weight:600;color:#1B3A6B;
+          border-bottom:2.5px solid #1B3A6B;">
+          <i class="fab fa-apple" style="margin-right:5px;"></i>iPhone / iPad
+        </button>
+        <button id="pwa-tab-android" onclick="pwaSwitchTab('android')" style="
+          flex:1;padding:11px 8px;border:none;background:none;cursor:pointer;
+          font-size:13px;font-weight:600;color:#999;
+          border-bottom:2.5px solid transparent;">
+          <i class="fab fa-android" style="margin-right:5px;"></i>Android
+        </button>
+      </div>
+      <!-- 이미지 영역 -->
+      <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;">
+        <div id="pwa-guide-ios">
+          <img src="icons/guide-ios.png" alt="iOS 홈 화면 추가 방법"
+               style="width:100%;display:block;" loading="lazy" />
+        </div>
+        <div id="pwa-guide-android" style="display:none;">
+          <img src="icons/guide-android.png" alt="Android 홈 화면 추가 방법"
+               style="width:100%;display:block;" loading="lazy" />
+          <!-- Android: 설치 버튼 -->
+          <div style="padding:14px 16px;background:#f8f9fa;border-top:1px solid #eee;">
+            <button id="pwa-install-btn" style="
+              width:100%;padding:13px;border:none;border-radius:12px;
+              background:#1B3A6B;color:#fff;font-size:15px;font-weight:700;
+              cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <i class="fas fa-download"></i> 지금 설치하기
+            </button>
+            <p id="pwa-install-unavail" style="display:none;text-align:center;font-size:12px;color:#888;margin:8px 0 0;">
+              Chrome 브라우저에서 접속 후 설치해주세요
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="pwa-banner-text">
-      <strong>ECLADO Cowork 앱 설치</strong>
-      <span>홈 화면에 추가해 앱처럼 사용하세요!</span>
-    </div>
-    <button id="pwa-install-btn" class="pwa-install-accept">설치</button>
-    <button id="pwa-install-dismiss" class="pwa-install-dismiss" aria-label="닫기">✕</button>
   </div>
 
-  <!-- iOS Safari: 홈 화면 추가 안내 배너 -->
-  <div id="pwa-ios-banner" style="display:none;" role="banner" aria-label="iOS 홈 화면 추가 안내">
-    <div class="pwa-banner-icon">
-      <img src="icons/icon.svg" alt="ECLADO 아이콘" width="44" height="44" />
-    </div>
-    <div class="pwa-banner-text">
-      <strong>iPhone/iPad (iOS Safari)</strong>
-      <span>하단 공유(□↑) 버튼 → <b>"홈 화면에 추가"</b> → 추가</span>
-    </div>
-    <button id="pwa-ios-dismiss" class="pwa-install-dismiss" aria-label="닫기">✕</button>
-  </div>
+  <!-- 하단 고정 안내 버튼 (로그인 후 표시) -->
+  <button id="pwa-fab" style="
+    display:none;position:fixed;bottom:72px;right:16px;z-index:9999;
+    background:#1B3A6B;color:#fff;border:none;border-radius:50px;
+    padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;
+    box-shadow:0 4px 16px rgba(27,58,107,.4);
+    display:none;align-items:center;gap:7px;
+    animation:pwa-fab-bounce 2s ease-in-out infinite;">
+    <i class="fas fa-home"></i> 홈 화면에 추가
+  </button>
 
   <!-- PWA 업데이트 알림 -->
   <div id="pwa-update-banner" style="display:none;" role="alert">
@@ -2554,6 +2604,10 @@
     <button id="pwa-update-btn" class="pwa-install-accept" style="margin-left:auto;">지금 업데이트</button>
     <button id="pwa-update-dismiss" class="pwa-install-dismiss" aria-label="닫기">✕</button>
   </div>
+
+  <!-- 기존 배너 (호환성 유지) -->
+  <div id="pwa-install-banner" style="display:none;"></div>
+  <div id="pwa-ios-banner" style="display:none;"></div>
 
   <!-- ═══════ Service Worker + PWA 로직 ═══════ -->
   <script>
@@ -2592,120 +2646,128 @@
     }
 
     /* ════════════════════════════════════════
-       PWA 설치 배너 로직
-       - Android Chrome : beforeinstallprompt → 로그인 후 하단 배너
-       - iOS Safari     : 항상 상단 배너 (공유 버튼 안내)
+       PWA 홈 화면 추가 안내 모달 로직
        ════════════════════════════════════════ */
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                       || window.navigator.standalone === true;
+    const isIos        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    let   deferredPrompt = null;
 
-    /* ── 헬퍼 함수 ── */
-    function showBanner(el) {
-      if (!el || isStandalone) return;
-      el.style.display = 'flex';
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => el.classList.add('pwa-banner-show'));
-      });
-    }
-    function hideBanner(el) {
-      if (!el) return;
-      el.classList.remove('pwa-banner-show');
-      el.classList.add('pwa-banner-hide');
-      setTimeout(() => { el.style.display = 'none'; el.classList.remove('pwa-banner-hide'); }, 350);
-    }
-    function showToastPwa(msg) {
-      if (typeof toast === 'function') { toast(msg, 'success'); return; }
-      const t = document.createElement('div');
-      t.textContent = msg;
-      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.2);';
-      document.body.appendChild(t);
-      setTimeout(() => t.remove(), 3500);
-    }
-
-    /* ── Android Chrome: beforeinstallprompt ── */
-    let deferredPrompt = null;
-    const installBanner = document.getElementById('pwa-install-banner');
-    const installBtn    = document.getElementById('pwa-install-btn');
-    const dismissBtn    = document.getElementById('pwa-install-dismiss');
-    const dismissed     = localStorage.getItem('pwa-banner-dismissed');  // sessionStorage → localStorage로 변경
-
+    /* ── Android 설치 프롬프트 캡처 ── */
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
-      console.log('[PWA] beforeinstallprompt 수신 - 설치 가능');
+      console.log('[PWA] 설치 가능 (Android)');
     });
 
-    // 설치 버튼 클릭
-    if (installBtn) {
-      installBtn.addEventListener('click', async () => {
+    /* ── 모달 열기/닫기 ── */
+    function openPwaGuide() {
+      const modal = document.getElementById('pwa-guide-modal');
+      const box   = document.getElementById('pwa-guide-box');
+      if (!modal || isStandalone) return;
+      // 기기에 맞는 탭 기본 선택
+      pwaSwitchTab(isIos ? 'ios' : 'android');
+      modal.style.display = 'block';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        box.style.transform = 'translate(-50%,-50%) scale(1)';
+        box.style.opacity   = '1';
+      }));
+    }
+
+    function closePwaGuide() {
+      const modal = document.getElementById('pwa-guide-modal');
+      const box   = document.getElementById('pwa-guide-box');
+      if (!modal) return;
+      box.style.transform = 'translate(-50%,-50%) scale(0.92)';
+      box.style.opacity   = '0';
+      setTimeout(() => { modal.style.display = 'none'; }, 280);
+    }
+
+    /* ── 탭 전환 ── */
+    window.pwaSwitchTab = function(tab) {
+      const iosPane     = document.getElementById('pwa-guide-ios');
+      const androidPane = document.getElementById('pwa-guide-android');
+      const iosTab      = document.getElementById('pwa-tab-ios');
+      const androidTab  = document.getElementById('pwa-tab-android');
+      if (!iosPane) return;
+      if (tab === 'ios') {
+        iosPane.style.display     = 'block';
+        androidPane.style.display = 'none';
+        iosTab.style.color        = '#1B3A6B';
+        iosTab.style.borderBottomColor = '#1B3A6B';
+        androidTab.style.color   = '#999';
+        androidTab.style.borderBottomColor = 'transparent';
+      } else {
+        iosPane.style.display     = 'none';
+        androidPane.style.display = 'block';
+        androidTab.style.color    = '#1B3A6B';
+        androidTab.style.borderBottomColor = '#1B3A6B';
+        iosTab.style.color        = '#999';
+        iosTab.style.borderBottomColor = 'transparent';
+        // Android 설치 버튼 상태
+        const installBtn   = document.getElementById('pwa-install-btn');
+        const unavailMsg   = document.getElementById('pwa-install-unavail');
+        if (installBtn && unavailMsg) {
+          if (deferredPrompt) {
+            installBtn.style.display  = 'flex';
+            unavailMsg.style.display  = 'none';
+          } else {
+            installBtn.style.display  = 'none';
+            unavailMsg.style.display  = 'block';
+          }
+        }
+      }
+    };
+
+    /* ── 설치 버튼 (Android) ── */
+    document.addEventListener('click', async e => {
+      if (e.target.closest('#pwa-install-btn')) {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        console.log('[PWA] 설치 선택:', outcome);
         deferredPrompt = null;
-        hideBanner(installBanner);
+        closePwaGuide();
         if (outcome === 'accepted') {
-          showToastPwa('ECLADO 앱이 홈 화면에 추가되었습니다! 🎉');
+          const t = document.createElement('div');
+          t.textContent = 'ECLADO 앱이 홈 화면에 추가되었습니다! 🎉';
+          t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.25);';
+          document.body.appendChild(t);
+          setTimeout(() => t.remove(), 3500);
         }
-      });
-    }
-    if (dismissBtn) {
-      dismissBtn.addEventListener('click', () => {
-        localStorage.setItem('pwa-banner-dismissed', '1');
-        hideBanner(installBanner);
-      });
-    }
+      }
+    });
 
-    // 로그인 후 Android 설치 배너 표시
+    /* ── 닫기 버튼 & 오버레이 클릭 ── */
+    document.addEventListener('click', e => {
+      if (e.target.closest('#pwa-guide-close') || e.target.id === 'pwa-guide-overlay') {
+        closePwaGuide();
+      }
+    });
+
+    /* ── FAB 버튼: 로그인 후 표시 ── */
+    const fab = document.getElementById('pwa-fab');
     window.addEventListener('eclado-logged-in', () => {
-      if (!deferredPrompt || dismissed || isStandalone) return;
-      setTimeout(() => showBanner(installBanner), 1200);
+      if (isStandalone || !fab) return;
+      fab.style.display = 'flex';
+      fab.onclick = openPwaGuide;
     });
 
     /* ── 업데이트 배너 ── */
     const updateBanner  = document.getElementById('pwa-update-banner');
-    const updateBtn     = document.getElementById('pwa-update-btn');
+    const updateBtn2    = document.getElementById('pwa-update-btn');
     const updateDismiss = document.getElementById('pwa-update-dismiss');
 
     function showUpdateBanner(worker) {
       if (!updateBanner) return;
-      showBanner(updateBanner);
-      if (updateBtn) {
-        updateBtn.addEventListener('click', () => {
-          worker.postMessage({ type: 'SKIP_WAITING' });
-          hideBanner(updateBanner);
-        });
-      }
-    }
-    if (updateDismiss) {
-      updateDismiss.addEventListener('click', () => hideBanner(updateBanner));
-    }
-
-    /* ── iOS Safari: 홈 화면 추가 안내 배너 ── */
-    const isIos        = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const iosBanner    = document.getElementById('pwa-ios-banner');
-    const iosDismiss   = document.getElementById('pwa-ios-dismiss');
-    const iosDismissed = localStorage.getItem('pwa-ios-banner-dismissed');
-
-    if (isIos && !isStandalone && !iosDismissed) {
-      // 로그인 후 표시 (eclado-logged-in 이벤트)
-      window.addEventListener('eclado-logged-in', () => {
-        setTimeout(() => showBanner(iosBanner), 1500);
-      });
-      // 로그인 이벤트 없이 3초 후에도 표시 (폴백)
-      setTimeout(() => {
-        if (iosBanner && iosBanner.style.display === 'none') {
-          showBanner(iosBanner);
-        }
-      }, 3000);
-    }
-
-    if (iosDismiss) {
-      iosDismiss.addEventListener('click', () => {
-        localStorage.setItem('pwa-ios-banner-dismissed', '1');
-        hideBanner(iosBanner);
+      updateBanner.style.display = 'flex';
+      if (updateBtn2) updateBtn2.addEventListener('click', () => {
+        worker.postMessage({ type: 'SKIP_WAITING' });
+        updateBanner.style.display = 'none';
       });
     }
+    if (updateDismiss) updateDismiss.addEventListener('click', () => {
+      updateBanner.style.display = 'none';
+    });
 
   })();
   </script>
