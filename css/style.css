@@ -6390,3 +6390,17 @@ span.task-detail-upload-btn {
   inset: 0;
   z-index: 999990;
 }
+
+/* ── iOS 설치 모달 slideUp 애니메이션 ── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* 로그인 PWA 버튼 탭 피드백 */
+#pwa-login-install-btn:active,
+#pwa-login-ios-btn:active,
+#pwa-login-generic-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(27,58,107,.2) !important;
+}
