@@ -1,0 +1,2685 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>ECLADO Cowork</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- iOS 홈 화면 아이콘 -->
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
+  <meta name="apple-mobile-web-app-title" content="ECLADO" />
+
+  <!-- 파비콘 -->
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <!-- 폰트: display=swap으로 렌더링 차단 최소화, 필요한 weight만 로드 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <!-- FontAwesome: 비동기 로드로 속도 개선 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" /></noscript>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- 모바일 초기 레이아웃 안정화: 로그인 overlay 즉시 표시 -->
+  <style>
+    html, body { background: #ffffff !important; }
+    /* 로그인 overlay: 초기에는 display:none이 아닌 visible 상태로 관리 */
+    #login-overlay { background: #ffffff !important; }
+    #login-overlay.hidden { display: none !important; }
+    /* 로그인 화면 로딩 전 사이드바/메인 숨김 */
+    body:has(#login-overlay:not(.hidden)) .sidebar,
+    body:has(#login-overlay:not(.hidden)) .mobile-top-bar,
+    body:has(#login-overlay:not(.hidden)) .sidebar-toggle {
+      visibility: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════ SIDEBAR ═══════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <!-- 로고 -->
+    <div class="sidebar-logo" id="sidebar-logo-wrap">
+      <div class="sidebar-logo-inner">
+        <svg width="100%" height="32" viewBox="0 0 420 56" xmlns="http://www.w3.org/2000/svg" id="sidebar-logo-svg" style="display:block;overflow:visible">
+          <text x="0" y="44" font-family="'Arial Black','Impact',sans-serif"
+                font-size="38" font-weight="900" letter-spacing="1" fill="#1B3A6B" id="sidebar-logo-text">ECLADO Cowork</text>
+        </svg>
+      </div>
+      <button class="logo-edit-btn" id="btn-logo-edit" title="툴 이름 수정" onclick="openLogoEditModal()">
+        <i class="fas fa-pencil-alt"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">메인</div>
+      <ul>
+        <li class="nav-item active" data-page="dashboard"><i class="fas fa-chart-pie"></i><span>대시보드</span></li>
+        <li class="nav-item" data-page="projects"><i class="fas fa-folder-open"></i><span>프로젝트</span><span class="nav-badge" id="project-count-badge"></span></li>
+        <li class="nav-item nav-item-dooray" data-page="dooray" id="nav-dooray-toggle">
+          <i class="fas fa-briefcase"></i><span>담당 업무</span>
+          <span class="nav-badge" id="dooray-task-badge"></span>
+          <i class="fas fa-chevron-down nav-chevron" id="dooray-chevron"></i>
+        </li>
+        <!-- 담당 업무 서브메뉴 (담당업무 페이지 진입 시 펼쳐짐) -->
+        <li class="nav-submenu-wrap" id="dooray-submenu" style="display:none">
+          <ul class="nav-submenu">
+            <li class="nav-sub-group-label">바로가기</li>
+            <li class="nav-sub-item active" id="dsub-all" data-filter="all" onclick="doorayNavSelect('all',this)">
+              <i class="fas fa-layer-group"></i><span>전체 업무</span>
+              <span class="nav-sub-count" id="dooray-cnt-all">0</span>
+            </li>
+            <li class="nav-sub-item" id="dsub-my" data-filter="my" onclick="doorayNavSelect('my',this)">
+              <i class="fas fa-user"></i><span>내 담당 업무</span>
+              <span class="nav-sub-count" id="dooray-cnt-my">0</span>
+            </li>
+            <li class="nav-sub-item" id="dsub-urgent" data-filter="urgent" onclick="doorayNavSelect('urgent',this)">
+              <i class="fas fa-exclamation-circle" style="color:#E74C3C"></i><span>긴급 업무</span>
+              <span class="nav-sub-count" id="dooray-cnt-urgent">0</span>
+            </li>
+            <li class="nav-sub-group-label">
+              프로젝트
+              <button class="nav-sub-add-btn" onclick="openNewProjectModal()" title="프로젝트 추가"><i class="fas fa-plus"></i></button>
+            </li>
+            <!-- 프로젝트 목록 — JS 동적 렌더 -->
+            <li class="nav-sub-search-wrap">
+              <input class="nav-sub-search" id="dooray-proj-search" type="text" placeholder="프로젝트 검색..." oninput="renderDooraySidebar()" />
+            </li>
+            <div id="dooray-proj-list-group"></div>
+          </ul>
+        </li>
+        <li class="nav-item" data-page="tasks"><i class="fas fa-tasks"></i><span>작업 보드</span></li>
+      </ul>
+      <div class="nav-section-label">조직</div>
+      <ul>
+        <li class="nav-item" data-page="departments"><i class="fas fa-sitemap"></i><span>부서 관리</span></li>
+        <li class="nav-item" data-page="members"><i class="fas fa-users"></i><span>팀원 관리</span></li>
+        <li class="nav-item" data-page="calendar"><i class="fas fa-calendar-alt"></i><span>캘린더</span></li>
+      </ul>
+      <div class="nav-section-label">커뮤니케이션</div>
+      <ul>
+        <li class="nav-item" data-page="messenger"><i class="fas fa-comment-dots"></i><span>메신저</span><span class="nav-badge nav-badge-red" id="msg-unread-badge"></span></li>
+        <li class="nav-item" data-page="email"><i class="fas fa-envelope"></i><span>이메일</span><span class="nav-badge nav-badge-red" id="email-unread-badge"></span></li>
+      </ul>
+      <div class="nav-section-label">인사</div>
+      <ul>
+        <li class="nav-item nav-leave" data-page="leave"><i class="fas fa-umbrella-beach"></i><span>연차</span><span class="nav-leave-badge" id="leave-nav-badge"></span></li>
+      </ul>
+      <div class="nav-section-label">개인</div>
+      <ul>
+        <li class="nav-item" data-page="personal"><i class="fas fa-user-lock"></i><span>개인 프로젝트</span></li>
+        <li class="nav-item" data-page="cloud"><i class="fas fa-cloud"></i><span>클라우드 저장소</span></li>
+      </ul>
+      <div class="nav-section-label">관리자</div>
+      <ul>
+        <li class="nav-item nav-admin1" data-page="admin1"><i class="fas fa-user-shield"></i><span>관리자 1</span><span class="nav-admin-badge">A1</span></li>
+        <li class="nav-item nav-admin2" data-page="admin2"><i class="fas fa-user-cog"></i><span>관리자 2</span><span class="nav-admin-badge">A2</span></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="my-profile" id="my-profile" onclick="openModal('modal-owner-edit')">
+        <div class="avatar" id="sidebar-avatar" style="background:#1B3A6B">김</div>
+        <div class="profile-info">
+          <span class="profile-name" id="sidebar-owner-name">김지훈</span>
+          <span class="profile-role" id="sidebar-owner-role">오너</span>
+        </div>
+        <i class="fas fa-pencil-alt" style="color:#9AAAC0;font-size:12px"></i>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 모바일 토글 -->
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="메뉴 열기"><i class="fas fa-bars"></i></button>
+  <!-- 모바일 상단 헤더 바 -->
+  <div class="mobile-top-bar" id="mobile-top-bar">
+    <span class="mobile-top-bar-title" id="mobile-top-title">ECLADO Cowork</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- ═══════════════════════════ MAIN ═══════════════════════════ -->
+  <main class="main-content" id="main-content">
+
+    <!-- ── 대시보드 ── -->
+    <section class="page active" id="page-dashboard">
+      <header class="page-header">
+        <div><h1 class="page-title" id="dash-greeting">안녕하세요 👋</h1><p class="page-subtitle">오늘도 ECLADO Cowork과 함께하세요.</p></div>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-new-project"><i class="fas fa-plus"></i> 새 프로젝트</button>
+        </div>
+      </header>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card stat-navy"><div class="stat-icon"><i class="fas fa-folder"></i></div><div class="stat-info"><span class="stat-value" id="stat-total-projects">—</span><span class="stat-label">전체 프로젝트</span></div></div>
+        <div class="stat-card stat-blue"><div class="stat-icon"><i class="fas fa-tasks"></i></div><div class="stat-info"><span class="stat-value" id="stat-total-tasks">—</span><span class="stat-label">전체 작업</span></div></div>
+        <div class="stat-card stat-green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-info"><span class="stat-value" id="stat-done-tasks">—</span><span class="stat-label">완료된 작업</span></div></div>
+        <div class="stat-card stat-orange stat-card-clickable" id="stat-card-members" onclick="openMembersListModal()" title="클릭하면 전체 팀원 명단을 볼 수 있습니다"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-info"><span class="stat-value" id="stat-total-members">—</span><span class="stat-label">팀원 수 <i class="fas fa-mouse-pointer" style="font-size:9px;opacity:.45;margin-left:2px"></i></span></div></div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-rocket"></i> 진행 중 프로젝트</h3><button class="btn btn-ghost btn-sm" onclick="showPage('projects')">전체 보기</button></div><div class="card-body" id="dashboard-projects-list"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div></div>
+        <div class="card"><div class="card-header"><h3 class="card-title"><i class="fas fa-user-check"></i> 나의 작업</h3><button class="btn btn-ghost btn-sm" onclick="showPage('tasks')">전체 보기</button></div><div class="card-body" id="dashboard-tasks-list"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div></div>
+        <div class="card card-full"><div class="card-header"><h3 class="card-title"><i class="fas fa-stream"></i> 팀 활동</h3></div><div class="card-body" id="dashboard-activity"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div></div>
+      </div>
+    </section>
+
+    <!-- ── 프로젝트 ── -->
+    <section class="page" id="page-projects">
+      <header class="page-header">
+        <div><h1 class="page-title">프로젝트</h1><p class="page-subtitle">팀의 모든 프로젝트를 한눈에 관리하세요.</p></div>
+        <div class="header-actions">
+          <div class="search-box"><i class="fas fa-search"></i><input type="text" id="project-search" placeholder="프로젝트 검색..." /></div>
+          <div class="view-toggle"><button class="view-btn active" id="view-grid"><i class="fas fa-th-large"></i></button><button class="view-btn" id="view-list"><i class="fas fa-list"></i></button></div>
+          <button class="btn btn-primary" id="btn-new-project-2"><i class="fas fa-plus"></i> 새 프로젝트</button>
+        </div>
+      </header>
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">전체</button>
+        <button class="filter-btn" data-filter="in_progress">진행 중</button>
+        <button class="filter-btn" data-filter="planning">계획</button>
+        <button class="filter-btn" data-filter="review">검토</button>
+        <button class="filter-btn" data-filter="completed">완료</button>
+        <button class="filter-btn" data-filter="on_hold">보류</button>
+      </div>
+      <div class="projects-grid" id="projects-grid"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+    </section>
+
+    <!-- ── 작업 보드 ── -->
+    <section class="page" id="page-tasks">
+      <header class="page-header">
+        <div><h1 class="page-title">작업 보드</h1><p class="page-subtitle">칸반 보드로 작업 흐름을 관리하세요.</p></div>
+        <div class="header-actions">
+          <select class="select-field" id="kanban-project-filter"><option value="all">전체 프로젝트</option></select>
+          <button class="btn btn-primary" id="btn-new-task"><i class="fas fa-plus"></i> 새 작업</button>
+        </div>
+      </header>
+      <div class="kanban-board" id="kanban-board">
+        <div class="kanban-column"><div class="kanban-col-header"><span class="col-dot dot-gray"></span><h3>할 일</h3><span class="col-count" id="count-todo">0</span></div><div class="kanban-cards" id="cards-todo" data-status="todo"></div><button class="btn-add-card" data-status="todo"><i class="fas fa-plus"></i> 작업 추가</button></div>
+        <div class="kanban-column"><div class="kanban-col-header"><span class="col-dot dot-blue"></span><h3>진행 중</h3><span class="col-count" id="count-in_progress">0</span></div><div class="kanban-cards" id="cards-in_progress" data-status="in_progress"></div><button class="btn-add-card" data-status="in_progress"><i class="fas fa-plus"></i> 작업 추가</button></div>
+        <div class="kanban-column"><div class="kanban-col-header"><span class="col-dot dot-yellow"></span><h3>검토</h3><span class="col-count" id="count-review">0</span></div><div class="kanban-cards" id="cards-review" data-status="review"></div><button class="btn-add-card" data-status="review"><i class="fas fa-plus"></i> 작업 추가</button></div>
+        <div class="kanban-column"><div class="kanban-col-header"><span class="col-dot dot-green"></span><h3>완료</h3><span class="col-count" id="count-done">0</span></div><div class="kanban-cards" id="cards-done" data-status="done"></div><button class="btn-add-card" data-status="done"><i class="fas fa-plus"></i> 작업 추가</button></div>
+      </div>
+    </section>
+
+    <!-- ── 담당 업무 (두레이 스타일, 2-column) ── -->
+    <section class="page" id="page-dooray">
+      <div class="dooray-layout">
+
+        <!-- ① 업무 목록 패널 -->
+        <main class="dooray-list-panel" id="dooray-list-panel">
+          <div class="dooray-list-header">
+            <div class="dooray-list-title-row">
+              <h2 class="dooray-list-title" id="dooray-list-title">전체 업무</h2>
+              <span class="dooray-list-total" id="dooray-list-total">0건</span>
+            </div>
+            <div class="dooray-filter-bar">
+              <input class="dooray-search-input" id="dooray-task-search" type="text" placeholder="업무 검색..." oninput="renderDoorayTaskList()" />
+              <select class="dooray-filter-select" id="dooray-filter-status" onchange="renderDoorayTaskList()">
+                <option value="all">상태: 전체</option>
+                <option value="todo">할 일</option>
+                <option value="in_progress">진행 중</option>
+                <option value="review">검토</option>
+                <option value="done">완료</option>
+              </select>
+              <select class="dooray-filter-select" id="dooray-filter-priority" onchange="renderDoorayTaskList()">
+                <option value="all">우선순위: 전체</option>
+                <option value="urgent">긴급</option>
+                <option value="high">높음</option>
+                <option value="medium">보통</option>
+                <option value="low">낮음</option>
+              </select>
+              <select class="dooray-filter-select" id="dooray-filter-assignee" onchange="renderDoorayTaskList()">
+                <option value="all">담당자: 전체</option>
+              </select>
+              <button class="dooray-filter-reset-btn" onclick="doorayResetFilters()" title="필터 초기화"><i class="fas fa-undo-alt"></i></button>
+              <button class="dooray-new-task-btn" onclick="openNewTaskDooray()"><i class="fas fa-plus"></i> 새 업무</button>
+            </div>
+            <!-- 정렬 탭 -->
+            <div class="dooray-sort-tabs">
+              <button class="dooray-sort-tab active" data-sort="created" onclick="dooraySetSort('created',this)">최신순</button>
+              <button class="dooray-sort-tab" data-sort="due" onclick="dooraySetSort('due',this)">마감일순</button>
+              <button class="dooray-sort-tab" data-sort="priority" onclick="dooraySetSort('priority',this)">우선순위순</button>
+            </div>
+          </div>
+          <div class="dooray-task-list" id="dooray-task-list">
+            <div class="dooray-empty"><i class="fas fa-inbox"></i><p>업무가 없습니다.</p></div>
+          </div>
+        </main>
+
+        <!-- ② 오른쪽 업무 상세 패널 -->
+        <aside class="dooray-detail-panel" id="dooray-detail-panel">
+          <div class="dooray-detail-empty" id="dooray-detail-empty">
+            <i class="fas fa-hand-pointer"></i>
+            <p>업무를 선택하면<br>상세 내용이 표시됩니다</p>
+          </div>
+          <div class="dooray-detail-content" id="dooray-detail-content" style="display:none">
+            <!-- 헤더 (고정) -->
+            <div class="dooray-detail-header">
+              <div class="dooray-detail-breadcrumb" id="dooray-detail-breadcrumb"></div>
+              <div class="dooray-detail-actions">
+                <button class="dooray-action-btn" id="dooray-btn-edit" title="편집"><i class="fas fa-pen"></i></button>
+                <button class="dooray-action-btn dooray-action-del" id="dooray-btn-delete" title="삭제"><i class="fas fa-trash"></i></button>
+                <button class="dooray-action-btn" onclick="doorayCloseDetail()" title="닫기"><i class="fas fa-times"></i></button>
+              </div>
+            </div>
+            <!-- 스크롤 영역 -->
+            <div class="dooray-detail-scroll">
+              <!-- 제목 -->
+              <h2 class="dooray-detail-title" id="dooray-detail-title"></h2>
+              <!-- 메타 정보 -->
+              <div class="dooray-detail-meta" id="dooray-detail-meta"></div>
+              <!-- 추가 목록 섹션 (두레이의 "추가 목록") -->
+              <div class="dooray-detail-checklist-wrap" id="dooray-detail-checklist-wrap" style="display:none">
+                <div class="dooray-checklist-header">
+                  <i class="fas fa-list-check"></i><span>체크리스트</span>
+                  <button class="dooray-checklist-add" onclick="doorayAddChecklist()"><i class="fas fa-plus"></i></button>
+                </div>
+                <div id="dooray-checklist-items"></div>
+              </div>
+              <!-- 본문 설명 -->
+              <div class="dooray-detail-desc-wrap">
+                <div class="dooray-detail-desc-label"><i class="fas fa-align-left"></i> 업무 내용</div>
+                <div class="dooray-detail-desc" id="dooray-detail-desc"></div>
+              </div>
+              <!-- 탭: 히스토리 / 댓글 / 첨부 -->
+              <div class="dooray-inner-tabs">
+                <button class="dooray-inner-tab active" data-itab="history" onclick="dooraySetInnerTab('history',this)"><i class="fas fa-history"></i> 히스토리</button>
+                <button class="dooray-inner-tab" data-itab="comments" onclick="dooraySetInnerTab('comments',this)"><i class="fas fa-comments"></i> 댓글</button>
+                <button class="dooray-inner-tab" data-itab="files" onclick="dooraySetInnerTab('files',this)"><i class="fas fa-paperclip"></i> 첨부</button>
+              </div>
+              <div class="dooray-inner-tab-panels">
+                <div class="dooray-itab-panel active" id="dooray-itab-history">
+                  <div id="dooray-history-list" class="dooray-history-list"></div>
+                </div>
+                <div class="dooray-itab-panel" id="dooray-itab-comments">
+                  <div id="dooray-comment-list" class="dooray-comment-list"></div>
+                </div>
+                <div class="dooray-itab-panel" id="dooray-itab-files">
+                  <div id="dooray-file-list" class="dooray-file-list"></div>
+                </div>
+              </div>
+            </div><!-- /dooray-detail-scroll -->
+            <!-- 하단 메신저 입력창 (고정) -->
+            <div class="dooray-messenger-bar" id="dooray-messenger-bar">
+              <div class="dooray-msg-toolbar">
+                <button class="dooray-msg-tool" title="굵게" onclick="doorayFmt('bold')"><i class="fas fa-bold"></i></button>
+                <button class="dooray-msg-tool" title="기울임" onclick="doorayFmt('italic')"><i class="fas fa-italic"></i></button>
+                <button class="dooray-msg-tool" title="취소선" onclick="doorayFmt('strikethrough')"><i class="fas fa-strikethrough"></i></button>
+                <span class="dooray-msg-toolbar-sep"></span>
+                <!-- 텍스트 색상 -->
+                <div class="rte-color-wrap" id="dooray-color-wrap">
+                  <button class="dooray-msg-tool rte-color-btn" title="텍스트 색상" onclick="toggleColorPicker('dooray-color-picker')">
+                    <i class="fas fa-font"></i><span class="rte-color-indicator" id="dooray-color-ind" style="background:#e53e3e"></span>
+                  </button>
+                  <div class="rte-color-picker" id="dooray-color-picker">
+                    <div class="rte-cp-section-label">텍스트 색상</div>
+                    <div class="rte-cp-swatches">
+                      <span class="rte-swatch" style="background:#1a202c" title="검정" onclick="applyTextColor('#1a202c','dooray-color-ind','dooray-msg-input')"></span>
+                      <span class="rte-swatch" style="background:#4a5568" title="회색" onclick="applyTextColor('#4a5568','dooray-color-ind','dooray-msg-input')"></span>
+                      <span class="rte-swatch" style="background:#e53e3e" title="빨강" onclick="applyTextColor('#e53e3e','dooray-color-ind','dooray-msg-input')"></span>
+                      <span class="rte-swatch" style="background:#dd6b20" title="주황" onclick="applyTextColor('#dd6b20','dooray-color-ind','dooray-msg-input')"></span>
+                      <span class="rte-swatch" style="background:#d69e2e" title="노랑" onclick="applyTextColor('#d69e2e','dooray-color-ind','dooray-msg-input')"></span>
+                      <span class="rte-swatch" style="background:#38a169" title="초록" onclick="applyTextColor('#38a169','dooray-color-ind','dooray-msg-input')"></span>
+                      <span class="rte-swatch" style="background:#3182ce" title="파랑" onclick="applyTextColor('#3182ce','dooray-color-ind','dooray-msg-input')"></span>
+                      <span class="rte-swatch" style="background:#805ad5" title="보라" onclick="applyTextColor('#805ad5','dooray-color-ind','dooray-msg-input')"></span>
+                      <span class="rte-swatch" style="background:#d53f8c" title="핑크" onclick="applyTextColor('#d53f8c','dooray-color-ind','dooray-msg-input')"></span>
+                    </div>
+                    <div class="rte-cp-section-label" style="margin-top:8px">형광 하이라이트</div>
+                    <div class="rte-cp-swatches">
+                      <span class="rte-swatch rte-swatch-hl" style="background:#ffff00" title="노랑 형광" onclick="applyHighlight('#ffff00','dooray-msg-input')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#b3f5b3" title="초록 형광" onclick="applyHighlight('#b3f5b3','dooray-msg-input')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#ffd6e0" title="핑크 형광" onclick="applyHighlight('#ffd6e0','dooray-msg-input')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#c8e6ff" title="하늘 형광" onclick="applyHighlight('#c8e6ff','dooray-msg-input')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#ffe0b3" title="주황 형광" onclick="applyHighlight('#ffe0b3','dooray-msg-input')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#e8d5ff" title="보라 형광" onclick="applyHighlight('#e8d5ff','dooray-msg-input')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-clear" title="하이라이트 제거" onclick="applyHighlight('','dooray-msg-input')"><i class="fas fa-times"></i></span>
+                    </div>
+                  </div>
+                </div>
+                <span class="dooray-msg-toolbar-sep"></span>
+                <button class="dooray-msg-tool" title="파일 첨부" onclick="document.getElementById('dooray-file-input').click()"><i class="fas fa-paperclip"></i></button>
+                <input type="file" id="dooray-file-input" multiple style="display:none" onchange="doorayHandleFileAttach(event)" />
+              </div>
+              <div class="dooray-msg-attach-preview" id="dooray-msg-attach-preview"></div>
+              <div class="dooray-msg-input-row">
+                <div class="dooray-msg-input" id="dooray-msg-input" contenteditable="true" data-placeholder="댓글을 입력하세요... (@멘션 가능)"></div>
+                <button class="dooray-msg-send-btn" id="dooray-msg-send" onclick="dooraySendComment()">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+              <div class="dooray-msg-hint">Enter: 줄바꿈 &nbsp;|&nbsp; Ctrl+Enter: 전송</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ── 부서 관리 ── -->
+    <section class="page" id="page-departments">
+      <header class="page-header">
+        <div><h1 class="page-title">부서 관리</h1><p class="page-subtitle">부서를 등록하고 소속 직원을 관리하세요.</p></div>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-new-dept"><i class="fas fa-plus"></i> 부서 등록</button>
+        </div>
+      </header>
+      <div id="dept-grid" class="dept-grid"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+    </section>
+
+    <!-- ── 팀원 관리 ── -->
+    <section class="page" id="page-members">
+      <header class="page-header">
+        <div><h1 class="page-title">팀원 관리</h1><p class="page-subtitle">팀원들의 역할과 상태를 관리하세요.</p></div>
+        <div class="header-actions">
+          <div class="search-box"><i class="fas fa-search"></i><input type="text" id="member-search" placeholder="팀원 검색..." /></div>
+          <select class="select-field" id="member-dept-filter"><option value="all">전체 부서</option></select>
+          <button class="btn btn-primary" id="btn-invite-member"><i class="fas fa-user-plus"></i> 팀원 초대</button>
+        </div>
+      </header>
+      <div class="members-grid" id="members-grid"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+    </section>
+
+    <!-- ── 캘린더 ── -->
+    <section class="page" id="page-calendar">
+      <header class="page-header">
+        <div><h1 class="page-title">캘린더</h1><p class="page-subtitle">날짜를 클릭하거나 버튼으로 일정을 추가하세요.</p></div>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-new-cal-event"><i class="fas fa-plus"></i> 일정 추가</button>
+          <button class="btn btn-ghost" id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
+          <span class="calendar-title" id="calendar-title">2026년 5월</span>
+          <button class="btn btn-ghost" id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
+        </div>
+      </header>
+      <div class="calendar-wrap">
+        <div class="calendar-grid-header"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+      </div>
+      <div class="calendar-events">
+        <div class="cal-events-header">
+          <h3 class="events-title">이달의 일정</h3>
+        </div>
+        <div id="events-list"></div>
+      </div>
+    </section>
+
+    <!-- ── 메신저 ── -->
+    <section class="page" id="page-messenger">
+      <div class="messenger-layout">
+        <!-- 채널 목록 -->
+        <aside class="messenger-sidebar">
+          <div class="messenger-sidebar-header">
+            <h3>메신저</h3>
+            <div style="display:flex;gap:4px">
+              <button class="btn-icon-sm" id="btn-notify-setting" title="알림 설정" onclick="openNotifyModal()"><i class="fas fa-bell"></i></button>
+              <button class="btn-icon-sm" id="btn-new-room" title="새 채팅"><i class="fas fa-edit"></i></button>
+            </div>
+          </div>
+          <div class="messenger-search">
+            <div class="search-box" style="width:100%"><i class="fas fa-search"></i><input type="text" id="room-search" placeholder="대화 검색..." style="width:100%" /></div>
+          </div>
+          <div class="room-list" id="room-list"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+        </aside>
+        <!-- 채팅창 -->
+        <div class="messenger-main" id="messenger-main">
+          <div class="messenger-empty" id="messenger-empty">
+            <i class="fas fa-comment-dots"></i>
+            <p>대화를 선택하세요</p>
+          </div>
+          <div class="chat-area" id="chat-area" style="display:none">
+            <div class="chat-header" id="chat-header"></div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input-area">
+              <!-- 파일 첨부 미리보기 (전송 전) -->
+              <div class="chat-attach-preview" id="chat-attach-preview"></div>
+              <!-- 리치텍스트 툴바 -->
+              <div class="chat-rte-toolbar" id="chat-rte-toolbar">
+                <button class="chat-rte-btn" title="굵게" onclick="chatFmt('bold')"><i class="fas fa-bold"></i></button>
+                <button class="chat-rte-btn" title="기울임" onclick="chatFmt('italic')"><i class="fas fa-italic"></i></button>
+                <button class="chat-rte-btn" title="취소선" onclick="chatFmt('strikethrough')"><i class="fas fa-strikethrough"></i></button>
+                <span class="chat-rte-sep"></span>
+                <!-- 텍스트 색상 -->
+                <div class="rte-color-wrap" id="chat-color-wrap">
+                  <button class="chat-rte-btn rte-color-btn" title="텍스트 색상" onclick="toggleColorPicker('chat-color-picker')">
+                    <i class="fas fa-font"></i><span class="rte-color-indicator" id="chat-color-ind" style="background:#e53e3e"></span>
+                  </button>
+                  <div class="rte-color-picker" id="chat-color-picker">
+                    <div class="rte-cp-section-label">텍스트 색상</div>
+                    <div class="rte-cp-swatches">
+                      <span class="rte-swatch" style="background:#1a202c" title="검정" onclick="applyTextColor('#1a202c','chat-color-ind','chat-input-rich')"></span>
+                      <span class="rte-swatch" style="background:#4a5568" title="회색" onclick="applyTextColor('#4a5568','chat-color-ind','chat-input-rich')"></span>
+                      <span class="rte-swatch" style="background:#e53e3e" title="빨강" onclick="applyTextColor('#e53e3e','chat-color-ind','chat-input-rich')"></span>
+                      <span class="rte-swatch" style="background:#dd6b20" title="주황" onclick="applyTextColor('#dd6b20','chat-color-ind','chat-input-rich')"></span>
+                      <span class="rte-swatch" style="background:#d69e2e" title="노랑" onclick="applyTextColor('#d69e2e','chat-color-ind','chat-input-rich')"></span>
+                      <span class="rte-swatch" style="background:#38a169" title="초록" onclick="applyTextColor('#38a169','chat-color-ind','chat-input-rich')"></span>
+                      <span class="rte-swatch" style="background:#3182ce" title="파랑" onclick="applyTextColor('#3182ce','chat-color-ind','chat-input-rich')"></span>
+                      <span class="rte-swatch" style="background:#805ad5" title="보라" onclick="applyTextColor('#805ad5','chat-color-ind','chat-input-rich')"></span>
+                      <span class="rte-swatch" style="background:#d53f8c" title="핑크" onclick="applyTextColor('#d53f8c','chat-color-ind','chat-input-rich')"></span>
+                    </div>
+                    <div class="rte-cp-section-label" style="margin-top:8px">형광 하이라이트</div>
+                    <div class="rte-cp-swatches">
+                      <span class="rte-swatch rte-swatch-hl" style="background:#ffff00" title="노랑 형광" onclick="applyHighlight('#ffff00','chat-input-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#b3f5b3" title="초록 형광" onclick="applyHighlight('#b3f5b3','chat-input-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#ffd6e0" title="핑크 형광" onclick="applyHighlight('#ffd6e0','chat-input-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#c8e6ff" title="하늘 형광" onclick="applyHighlight('#c8e6ff','chat-input-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#ffe0b3" title="주황 형광" onclick="applyHighlight('#ffe0b3','chat-input-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-hl" style="background:#e8d5ff" title="보라 형광" onclick="applyHighlight('#e8d5ff','chat-input-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                      <span class="rte-swatch rte-swatch-clear" title="하이라이트 제거" onclick="applyHighlight('','chat-input-rich')"><i class="fas fa-times"></i></span>
+                    </div>
+                  </div>
+                </div>
+                <span class="chat-rte-sep"></span>
+                <button class="chat-action-btn" id="btn-chat-attach" title="파일·이미지·영상 첨부" onclick="document.getElementById('chat-file-input').click()"><i class="fas fa-paperclip"></i></button>
+                <input type="file" id="chat-file-input" multiple
+                  accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.ai,.psd,.eps,.svg,.fig,.mp4,.mov,.avi,.wmv,.mkv"
+                  style="display:none" onchange="handleChatFileSelect(event)" />
+              </div>
+              <div class="chat-input-wrap">
+                <div id="chat-input-rich" class="chat-input-rich" contenteditable="true" data-placeholder="메시지를 입력하세요... (Shift+Enter: 줄바꿈)"></div>
+                <button class="btn btn-primary btn-sm btn-send" id="btn-send-msg" title="전송"><i class="fas fa-paper-plane"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 이메일 ── -->
+    <section class="page" id="page-email">
+      <div class="email-layout">
+        <!-- 이메일 사이드바 -->
+        <aside class="email-sidebar">
+          <button class="btn btn-primary" style="width:100%;margin-bottom:16px" id="btn-compose"><i class="fas fa-pen"></i> 새 메일 작성</button>
+          <ul class="email-folder-list">
+            <li class="email-folder active" data-folder="inbox"><i class="fas fa-inbox"></i><span>받은 편지함</span><span class="folder-count" id="inbox-count"></span></li>
+            <li class="email-folder" data-folder="sent"><i class="fas fa-paper-plane"></i><span>보낸 편지함</span></li>
+            <li class="email-folder" data-folder="draft"><i class="fas fa-file-alt"></i><span>임시 보관함</span></li>
+            <li class="email-folder" data-folder="starred"><i class="fas fa-star"></i><span>중요 메일</span></li>
+            <li class="email-folder" data-folder="trash"><i class="fas fa-trash"></i><span>휴지통</span></li>
+          </ul>
+        </aside>
+        <!-- 이메일 목록 -->
+        <div class="email-list-panel" id="email-list-panel">
+          <div class="email-list-header">
+            <h3 id="email-folder-title">받은 편지함</h3>
+            <div class="search-box"><i class="fas fa-search"></i><input type="text" id="email-search" placeholder="메일 검색..." /></div>
+          </div>
+          <div class="email-list" id="email-list"><div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div></div>
+        </div>
+        <!-- 이메일 상세 -->
+        <div class="email-detail-panel" id="email-detail-panel">
+          <div class="email-detail-empty" id="email-detail-empty">
+            <i class="fas fa-envelope-open"></i><p>메일을 선택하세요</p>
+          </div>
+          <div id="email-detail-content" style="display:none"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 연차관리 페이지 ── -->
+    <section class="page" id="page-leave">
+
+      <!-- 비밀번호 잠금 레이어 -->
+      <div class="leave-lock-layer" id="leave-lock-layer">
+        <div class="leave-lock-card">
+          <div class="leave-lock-icon"><i class="fas fa-umbrella-beach"></i></div>
+          <h2 class="leave-lock-title">연차관리</h2>
+          <p class="leave-lock-sub">연차관리 시스템에 접근하려면<br>비밀번호를 입력하세요.</p>
+          <form id="leave-lock-form" onsubmit="return false;" autocomplete="off">
+            <input type="text" name="username" style="display:none" autocomplete="username" />
+            <div class="form-group" style="margin-top:20px">
+              <input type="password" id="leave-lock-pw" class="form-control leave-lock-input"
+                     placeholder="비밀번호 입력" autocomplete="current-password" />
+            </div>
+            <div class="leave-lock-hint" id="leave-lock-hint"></div>
+            <button type="submit" class="btn btn-primary leave-lock-btn" id="btn-leave-unlock">
+              <i class="fas fa-unlock-alt"></i> 입장
+            </button>
+          </form>
+          <div class="leave-lock-info">초기 비밀번호: <code>leave1234</code>
+            <br><small style="color:var(--text-muted);font-size:11px">관리자1 메뉴에서 변경 가능합니다.</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 연차관리 본문 (잠금 해제 후 표시) -->
+      <div class="leave-content" id="leave-content" style="display:none">
+
+        <!-- 헤더 -->
+        <header class="page-header">
+          <div>
+            <h1 class="page-title"><i class="fas fa-umbrella-beach" style="color:var(--primary);margin-right:8px"></i>연차관리</h1>
+            <p class="page-subtitle" id="leave-year-subtitle">2026년 연차 현황</p>
+          </div>
+          <div class="header-actions">
+            <select class="select-field" id="leave-year-select" style="width:100px"></select>
+            <button class="btn btn-ghost btn-sm" id="btn-leave-lock-again"><i class="fas fa-lock"></i> 잠금</button>
+            <button class="btn btn-primary" id="btn-add-leave-record"><i class="fas fa-user-plus"></i> 직원 추가</button>
+          </div>
+        </header>
+
+        <!-- 요약 통계 카드 -->
+        <div class="leave-stats-row leave-stats-row-2" id="leave-stats-row">
+          <!-- 등록 직원 -->
+          <div class="leave-stat-card leave-stat-card-clickable" id="lstat-card-total" onclick="showAllLeaveMembers()" title="클릭하면 전체 직원 목록을 표시합니다">
+            <div class="leave-stat-icon lsi-blue"><i class="fas fa-users"></i></div>
+            <div>
+              <div class="leave-stat-val" id="lstat-total">—</div>
+              <div class="leave-stat-lbl">등록 직원 <i class="fas fa-mouse-pointer" style="font-size:9px;opacity:.5;margin-left:3px"></i></div>
+            </div>
+          </div>
+          <!-- 기준일 내 미소진자 -->
+          <div class="leave-stat-card leave-stat-card-clickable lstat-card-unused" id="lstat-card-unused" onclick="openUnusedLeaveModal()" title="기준일 기간 내 연차를 미소진한 직원 — 클릭하여 상세 보기">
+            <div class="leave-stat-icon lsi-red"><i class="fas fa-user-clock"></i></div>
+            <div>
+              <div class="leave-stat-val" id="lstat-unused">—</div>
+              <div class="leave-stat-lbl">
+                미소진자
+                <i class="fas fa-mouse-pointer" style="font-size:9px;opacity:.5;margin-left:3px"></i>
+              </div>
+              <div class="lstat-unused-sub" id="lstat-unused-sub" style="font-size:10px;color:var(--text-muted);margin-top:2px">기준일 내 미사용</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 검색 + 필터 툴바 -->
+        <div class="leave-toolbar">
+          <div class="search-box"><i class="fas fa-search"></i><input type="text" id="leave-search" placeholder="이름 / 부서 검색..." /></div>
+          <select class="select-field" id="leave-dept-filter"><option value="all">전체 부서</option></select>
+          <select class="select-field" id="leave-status-filter">
+            <option value="all">전체 상태</option>
+            <option value="normal">정상 (50% 미만)</option>
+            <option value="warning">주의 (50%~80%)</option>
+            <option value="exhaust">소진 위험 (80% 이상)</option>
+          </select>
+          <!-- 퇴사자 숨김 토글 -->
+          <label class="resigned-toggle-wrap" title="퇴사자 행 숨김/표시">
+            <input type="checkbox" id="leave-hide-resigned" checked onchange="renderLeaveExcelTable()" />
+            <span class="resigned-toggle-slider"></span>
+            <span class="resigned-toggle-label">퇴사자 숨김</span>
+          </label>
+          <div class="leave-legend-inline">
+            <span class="leave-legend-item"><span class="leave-dot dot-normal"></span>정상</span>
+            <span class="leave-legend-item"><span class="leave-dot dot-warning"></span>주의</span>
+            <span class="leave-legend-item"><span class="leave-dot dot-exhaust"></span>소진위험</span>
+          </div>
+        </div>
+
+        <!-- ★ 엑셀 스타일 연차 테이블 ★ -->
+        <div class="lx-table-container">
+          <div class="lx-table-scroll-wrap">
+            <table class="lx-table" id="lx-table">
+              <thead>
+                <!-- 1행: 그룹 헤더 -->
+                <tr class="lx-thead-group">
+                  <th rowspan="2" class="lx-th-fix lx-col-no">No.</th>
+                  <th rowspan="2" class="lx-th-fix lx-col-dept">부서</th>
+                  <th rowspan="2" class="lx-th-fix lx-col-name">성명</th>
+                  <th rowspan="2" class="lx-th-fix lx-col-role">직책</th>
+                  <th rowspan="2" class="lx-th-fix lx-col-join">입사일</th>
+                  <th rowspan="2" class="lx-th-fix lx-col-base">기준일</th>
+                  <th rowspan="2" class="lx-th-fix lx-col-tenure">근속</th>
+                  <th rowspan="2" class="lx-th-fix lx-col-grant">발생<br>일수</th>
+                  <th colspan="2" class="lx-th-month-group">1월</th>
+                  <th colspan="2" class="lx-th-month-group">2월</th>
+                  <th colspan="2" class="lx-th-month-group">3월</th>
+                  <th colspan="2" class="lx-th-month-group">4월</th>
+                  <th colspan="2" class="lx-th-month-group">5월</th>
+                  <th colspan="2" class="lx-th-month-group">6월</th>
+                  <th colspan="2" class="lx-th-month-group">7월</th>
+                  <th colspan="2" class="lx-th-month-group">8월</th>
+                  <th colspan="2" class="lx-th-month-group">9월</th>
+                  <th colspan="2" class="lx-th-month-group">10월</th>
+                  <th colspan="2" class="lx-th-month-group">11월</th>
+                  <th colspan="2" class="lx-th-month-group">12월</th>
+                  <th rowspan="2" class="lx-th-total">사용<br>합계</th>
+                  <th rowspan="2" class="lx-th-remain">잔여<br>일수</th>
+                  <th rowspan="2" class="lx-th-rate">사용률</th>
+                  <th rowspan="2" class="lx-th-note">비고</th>
+                  <th rowspan="2" class="lx-th-actions">관리</th>
+                </tr>
+                <!-- 2행: 날짜/일수 서브헤더 -->
+                <tr class="lx-thead-sub">
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                  <th class="lx-th-sub-date">날짜</th><th class="lx-th-sub-days">일수</th>
+                </tr>
+              </thead>
+              <tbody id="lx-table-body">
+                <tr>
+                  <td colspan="33" class="lx-empty-row">
+                    <i class="fas fa-spinner fa-spin"></i> 불러오는 중...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /leave-content -->
+    </section>
+
+    <!-- ── 관리자 1 페이지 ── -->
+    <section class="page" id="page-admin1">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title"><i class="fas fa-user-shield" style="color:var(--primary);margin-right:8px"></i>관리자 1</h1>
+          <p class="page-subtitle">시스템 전체 관리 및 최고 권한 제어판입니다.</p>
+        </div>
+        <div class="header-actions">
+          <span class="admin-level-badge admin-level-1"><i class="fas fa-crown"></i> 최고 관리자</span>
+        </div>
+      </header>
+      <div class="admin-grid" id="admin1-grid"></div>
+    </section>
+
+    <!-- ── 관리자 2 페이지 ── -->
+    <section class="page" id="page-admin2">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title"><i class="fas fa-user-cog" style="color:var(--accent-blue);margin-right:8px"></i>관리자 2</h1>
+          <p class="page-subtitle">운영 관리 및 콘텐츠 권한 제어판입니다.</p>
+        </div>
+        <div class="header-actions">
+          <span class="admin-level-badge admin-level-2"><i class="fas fa-shield-alt"></i> 운영 관리자</span>
+        </div>
+      </header>
+      <div class="admin-grid" id="admin2-grid"></div>
+    </section>
+
+    <!-- ── 개인 프로젝트 ── -->
+    <section class="page" id="page-personal">
+      <!-- 잠금 레이어 -->
+      <div class="personal-lock-layer" id="personal-lock-layer" style="display:flex">
+        <div class="personal-lock-card">
+          <i class="fas fa-user-lock personal-lock-icon"></i>
+          <div class="personal-lock-title">개인 프로젝트</div>
+          <div class="personal-lock-hint">비밀번호를 입력하여 나만의 비공개 공간에 접근하세요.</div>
+          <div class="personal-lock-input-row">
+            <input type="password" id="personal-pw-input" class="form-control"
+              placeholder="비밀번호 입력..." autocomplete="off" />
+            <button class="btn btn-primary" id="btn-personal-unlock" onclick="unlockPersonal()">
+              <i class="fas fa-unlock-alt"></i> 입장
+            </button>
+          </div>
+          <div class="personal-lock-err" id="personal-pw-err"></div>
+          <div class="personal-lock-footer">
+            <button class="" onclick="resetPersonalPw()">비밀번호를 잊으셨나요? (초기화)</button>
+          </div>
+        </div>
+      </div>
+      <!-- 개인 프로젝트 콘텐츠 -->
+      <div id="personal-content">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title"><i class="fas fa-user-lock" style="color:var(--primary);margin-right:8px"></i>개인 프로젝트</h1>
+            <p class="page-subtitle">나만의 비공개 작업 공간입니다.</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-personal-pw-change" onclick="openPersonalPwChangeModal()"><i class="fas fa-key"></i> 비밀번호 변경</button>
+            <button class="btn btn-ghost btn-sm" id="btn-lock-personal" onclick="lockPersonal()"><i class="fas fa-lock"></i> 잠금</button>
+            <button class="btn btn-primary" id="btn-add-personal" onclick="openPersonalProjectModal(null)"><i class="fas fa-plus"></i> 새 프로젝트</button>
+          </div>
+        </header>
+        <!-- 통계 카드 -->
+        <div class="personal-stats-row">
+          <div class="personal-stat-card">
+            <div class="ps-val" id="personal-stat-total">0</div>
+            <div class="ps-lbl">전체 프로젝트</div>
+          </div>
+          <div class="personal-stat-card">
+            <div class="ps-val" id="personal-stat-inprog" style="color:#4A90E2">0</div>
+            <div class="ps-lbl">진행 중</div>
+          </div>
+          <div class="personal-stat-card">
+            <div class="ps-val" id="personal-stat-done" style="color:#27AE60">0</div>
+            <div class="ps-lbl">완료</div>
+          </div>
+          <div class="personal-stat-card">
+            <div class="ps-val" id="personal-stat-progress" style="color:#E67E22">0%</div>
+            <div class="ps-lbl">평균 진행률</div>
+          </div>
+        </div>
+        <!-- 검색/필터 -->
+        <div class="personal-toolbar">
+          <div class="search-box" style="flex:1;max-width:340px"><i class="fas fa-search"></i>
+            <input type="text" id="personal-search-input" placeholder="프로젝트 검색..." />
+          </div>
+          <select class="personal-filter-select" id="personal-status-filter">
+            <option value="all">전체 상태</option>
+            <option value="planning">계획</option>
+            <option value="in_progress">진행 중</option>
+            <option value="review">검토</option>
+            <option value="completed">완료</option>
+            <option value="on_hold">보류</option>
+          </select>
+        </div>
+        <div class="personal-projects-grid" id="personal-projects-grid"></div>
+      </div>
+    </section>
+
+    <!-- ── 클라우드 저장소 ── -->
+    <section class="page" id="page-cloud">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title"><i class="fas fa-cloud" style="color:var(--primary);margin-right:8px"></i>클라우드 저장소</h1>
+          <p class="page-subtitle">파일 직접 업로드 · Google Drive · Dropbox 링크 등록</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost" id="btn-add-link" onclick="openCloudLinkModal()">
+            <i class="fas fa-link"></i> 링크 등록
+          </button>
+          <button class="btn btn-primary btn-upload-send" onclick="document.getElementById('cloud-file-input').click()">
+            <i class="fas fa-paper-plane"></i> 파일 업로드
+          </button>
+          <input type="file" id="cloud-file-input" multiple
+            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.ai,.psd,.eps,.svg,.fig,.mp4,.mov,.avi"
+            style="display:none" />
+        </div>
+      </header>
+
+      <!-- 서비스 탭 -->
+      <div class="cloud-service-tabs" id="cloud-service-tabs">
+        <button class="cloud-svc-tab active" data-svc="all" onclick="setCloudServiceTab('all')">
+          <i class="fas fa-layer-group"></i> 전체
+        </button>
+        <button class="cloud-svc-tab" data-svc="upload" onclick="setCloudServiceTab('upload')">
+          <i class="fas fa-hdd"></i> 직접 업로드
+        </button>
+        <button class="cloud-svc-tab" data-svc="gdrive" onclick="setCloudServiceTab('gdrive')">
+          <img src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png"
+               alt="Google Drive" style="width:16px;height:16px;vertical-align:middle"> Google Drive
+        </button>
+        <button class="cloud-svc-tab" data-svc="dropbox" onclick="setCloudServiceTab('dropbox')">
+          <img src="https://cfl.dropboxstatic.com/static/images/logo_catalog/dropbox_logo_glyph_m1.svg"
+               alt="Dropbox" style="width:16px;height:16px;vertical-align:middle"> Dropbox
+        </button>
+        <button class="cloud-svc-tab" data-svc="link" onclick="setCloudServiceTab('link')">
+          <i class="fas fa-link"></i> 기타 링크
+        </button>
+      </div>
+
+      <!-- 통계 카드 -->
+      <div class="cloud-stats-row">
+        <div class="cloud-stat-card">
+          <div class="cs-val" id="cloud-stat-total">0개</div>
+          <div class="cs-lbl">전체 항목</div>
+        </div>
+        <div class="cloud-stat-card">
+          <div class="cs-val" id="cloud-stat-img" style="color:#4A90E2">0개</div>
+          <div class="cs-lbl">이미지</div>
+        </div>
+        <div class="cloud-stat-card">
+          <div class="cs-val" id="cloud-stat-gdrive" style="color:#4285F4">0개</div>
+          <div class="cs-lbl">Google Drive</div>
+        </div>
+        <div class="cloud-stat-card">
+          <div class="cs-val" id="cloud-stat-dropbox" style="color:#0061FF">0개</div>
+          <div class="cs-lbl">Dropbox</div>
+        </div>
+      </div>
+
+      <!-- 용량 바 (직접 업로드 파일만) -->
+      <div class="cloud-quota-bar-wrap">
+        <div class="cloud-quota-icon"><i class="fas fa-hdd"></i></div>
+        <div class="cloud-quota-info">
+          <div class="cloud-quota-label">
+            <span>직접 업로드 사용량</span>
+            <span><span id="cloud-used-str">0 B</span> / <span id="cloud-max-str">100 GB</span></span>
+          </div>
+          <div class="cloud-quota-bar">
+            <div class="cloud-quota-fill" id="cloud-quota-fill" style="width:0%"></div>
+          </div>
+          <div class="cloud-quota-nums">링크 등록(Drive·Dropbox)은 용량 차감 없음 · 직접 업로드 파일당 최대 100MB</div>
+        </div>
+      </div>
+
+      <!-- 드롭존 -->
+      <div class="cloud-drop-zone" id="cloud-drop-zone">
+        <i class="fas fa-paper-plane"></i>
+        <p>여기에 파일을 드래그 앤 드롭하세요</p>
+        <small>이미지 · 영상 · 문서 · 디자인 파일 등 최대 100MB/파일</small>
+      </div>
+
+      <!-- 툴바 -->
+      <div class="cloud-toolbar">
+        <input type="text" class="cloud-search" id="cloud-search-input" placeholder="파일명 / 링크 검색..." />
+        <select class="cloud-cat-filter" id="cloud-cat-filter">
+          <option value="all">전체 유형</option>
+          <option value="이미지">이미지</option>
+          <option value="영상">영상</option>
+          <option value="오디오">오디오</option>
+          <option value="문서">문서</option>
+          <option value="기타">기타</option>
+        </select>
+        <div class="cloud-view-btns">
+          <button class="cloud-view-btn active" data-view="grid" title="그리드 뷰"><i class="fas fa-th"></i></button>
+          <button class="cloud-view-btn" data-view="list" title="리스트 뷰"><i class="fas fa-list"></i></button>
+        </div>
+      </div>
+
+      <!-- 파일 목록 -->
+      <div id="cloud-files-wrap">
+        <div class="cloud-empty">
+          <i class="fas fa-folder-open"></i>
+          <p>등록된 파일이 없습니다</p>
+          <small>파일을 직접 업로드하거나 Drive / Dropbox 링크를 등록하세요</small>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══ 클라우드 링크 등록 모달 ══ -->
+  <div class="modal-overlay" id="modal-cloud-link" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:500px">
+      <div class="modal-header">
+        <h2><i class="fas fa-link" style="color:var(--primary);margin-right:8px"></i>외부 링크 등록</h2>
+        <button class="modal-close" data-modal="modal-cloud-link"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- 서비스 선택 -->
+        <div class="form-group">
+          <label>서비스 종류</label>
+          <div class="cloud-link-svc-row" id="cloud-link-svc-row">
+            <button class="cloud-link-svc-btn active" data-svc="gdrive" onclick="selectLinkSvc('gdrive')">
+              <img src="https://www.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png" alt="Google Drive" style="width:22px;height:22px">
+              <span>Google Drive</span>
+            </button>
+            <button class="cloud-link-svc-btn" data-svc="dropbox" onclick="selectLinkSvc('dropbox')">
+              <img src="https://cfl.dropboxstatic.com/static/images/logo_catalog/dropbox_logo_glyph_m1.svg" alt="Dropbox" style="width:22px;height:22px">
+              <span>Dropbox</span>
+            </button>
+            <button class="cloud-link-svc-btn" data-svc="link" onclick="selectLinkSvc('link')">
+              <i class="fas fa-link" style="font-size:20px;color:var(--primary)"></i>
+              <span>기타 링크</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 안내 박스 -->
+        <div class="cloud-link-guide" id="cloud-link-guide">
+          <div class="clg-gdrive" id="clg-gdrive">
+            <div class="clg-title"><i class="fab fa-google-drive"></i> Google Drive 공유 링크 사용법</div>
+            <ol class="clg-steps">
+              <li>Drive에서 파일/폴더 우클릭 → <strong>공유</strong></li>
+              <li>링크 보기를 <strong>"링크가 있는 모든 사용자"</strong>로 변경</li>
+              <li>링크 복사 후 아래 붙여넣기</li>
+            </ol>
+            <div class="clg-example">예: https://drive.google.com/file/d/1aBcDe.../view</div>
+          </div>
+          <div class="clg-dropbox" id="clg-dropbox" style="display:none">
+            <div class="clg-title"><i class="fab fa-dropbox"></i> Dropbox 공유 링크 사용법</div>
+            <ol class="clg-steps">
+              <li>Dropbox에서 파일 우클릭 → <strong>공유</strong> 또는 <strong>링크 복사</strong></li>
+              <li>공유 링크를 아래 붙여넣기</li>
+              <li>직접 열기는 <code>dl=0</code> → <code>dl=1</code> 변경으로 다운로드 가능</li>
+            </ol>
+            <div class="clg-example">예: https://www.dropbox.com/s/abc123/파일명.pdf</div>
+          </div>
+          <div class="clg-link" id="clg-link" style="display:none">
+            <div class="clg-title"><i class="fas fa-link"></i> 기타 공개 링크</div>
+            <ol class="clg-steps">
+              <li>OneDrive, Box, Notion, GitHub 등 외부 공개 링크 등록 가능</li>
+              <li>링크는 <strong>공개(public) 접근 가능</strong>해야 합니다</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>링크 URL <span style="color:#E74C3C">*</span></label>
+          <input type="url" id="cloud-link-url" class="form-control"
+            placeholder="https://drive.google.com/..." />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>파일/폴더 이름 <span style="color:#E74C3C">*</span></label>
+            <input type="text" id="cloud-link-name" class="form-control" placeholder="표시할 이름" />
+          </div>
+          <div class="form-group">
+            <label>유형</label>
+            <select id="cloud-link-type" class="form-control">
+              <option value="기타">기타</option>
+              <option value="문서">문서</option>
+              <option value="이미지">이미지</option>
+              <option value="영상">영상</option>
+              <option value="폴더">폴더</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>메모</label>
+          <input type="text" id="cloud-link-note" class="form-control" placeholder="간단한 설명 (선택)" />
+        </div>
+        <div id="cloud-link-err" style="color:#E74C3C;font-size:12px;min-height:16px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-cloud-link">취소</button>
+        <button class="btn btn-primary btn-upload-send" id="btn-save-cloud-link" onclick="saveCloudLink()">
+          <i class="fas fa-paper-plane"></i> 등록
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 연차 직원 상세 모달 ══ -->
+  <div class="modal-overlay" id="modal-leave-member" role="dialog" aria-modal="true">
+    <div class="modal modal-xl" style="max-width:860px">
+      <div class="modal-header">
+        <h2><i class="fas fa-user-circle" style="color:var(--primary);margin-right:8px"></i>직원 연차 상세</h2>
+        <button class="modal-close" data-modal="modal-leave-member"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- 헤더 배너 -->
+        <div class="lm-header" id="lm-detail-header"></div>
+        <!-- 통계 카드 -->
+        <div class="lm-stats-row" id="lm-stats-row"></div>
+        <!-- 근속연수 바 -->
+        <div class="lm-service-bar" id="lm-service-bar"></div>
+        <!-- 연도 탭 -->
+        <div class="lm-year-tabs" id="lm-year-tabs"></div>
+        <!-- 연도별 이력 -->
+        <div id="lm-year-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 기준일 내 미소진자 상세 모달 ══ -->
+  <div class="modal-overlay" id="modal-unused-leave" role="dialog" aria-modal="true">
+    <div class="modal modal-lg" style="max-width:780px">
+      <div class="modal-header" style="background:linear-gradient(135deg,#c0392b,#e74c3c);border-radius:var(--radius-lg) var(--radius-lg) 0 0">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px">
+            <i class="fas fa-user-clock" style="color:#fff"></i>
+          </div>
+          <div>
+            <h2 style="color:#fff;margin:0;font-size:17px" id="unused-modal-title">기준일 내 미소진자</h2>
+            <p style="color:rgba(255,255,255,.8);margin:0;font-size:12px" id="unused-modal-sub"></p>
+          </div>
+        </div>
+        <button class="modal-close" data-modal="modal-unused-leave" style="color:rgba(255,255,255,.8)"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <!-- 요약 바 -->
+        <div class="unused-summary-bar" id="unused-summary-bar"></div>
+        <!-- 미소진자 테이블 -->
+        <div style="padding:16px 20px">
+          <div style="overflow-x:auto">
+            <table class="unused-table" id="unused-table">
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>부서</th>
+                  <th>성명</th>
+                  <th>직책</th>
+                  <th>기준일 기간</th>
+                  <th>부여일수</th>
+                  <th>사용일수</th>
+                  <th>미소진일수</th>
+                  <th>사용률</th>
+                </tr>
+              </thead>
+              <tbody id="unused-table-body">
+              </tbody>
+            </table>
+          </div>
+          <div id="unused-empty" style="display:none;text-align:center;padding:40px;color:var(--text-muted)">
+            <i class="fas fa-check-circle" style="font-size:36px;color:#27AE60;display:block;margin-bottom:12px"></i>
+            <strong style="font-size:15px;color:#27AE60">미소진자 없음</strong>
+            <p style="margin-top:6px;font-size:13px">기준일 기간 내 모든 직원이 연차를 1일 이상 사용했습니다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 직원 연차 전체 관리표 (입사 연도부터 현재까지) ══ -->
+  <div class="modal-overlay" id="modal-leave-fullview" role="dialog" aria-modal="true">
+    <div class="modal lfv-modal">
+      <div class="modal-header lfv-modal-header">
+        <div class="lfv-header-info">
+          <div class="lfv-header-avatar" id="lfv-avatar"></div>
+          <div>
+            <h2 id="lfv-title" style="margin:0;font-size:18px"></h2>
+            <p id="lfv-subtitle" style="margin:0;font-size:12px;color:var(--text-muted);margin-top:2px"></p>
+          </div>
+        </div>
+        <button class="modal-close" data-modal="modal-leave-fullview"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <!-- 요약 통계 바 -->
+        <div class="lfv-summary-bar" id="lfv-summary-bar"></div>
+        <!-- 연도별 테이블 섹션 -->
+        <div class="lfv-table-wrap" id="lfv-table-wrap">
+          <div class="lfv-loading"><i class="fas fa-spinner fa-spin"></i> 로드 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 개인 프로젝트 새로 만들기 / 편집 모달 ══ -->
+  <div class="modal-overlay" id="modal-personal-project" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 id="pp-modal-title"><i class="fas fa-plus-circle" style="color:var(--primary);margin-right:6px"></i>새 개인 프로젝트</h2>
+        <button class="modal-close" data-modal="modal-personal-project"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>제목 <span style="color:#E74C3C">*</span></label>
+          <input type="text" id="pp-title" class="form-control" placeholder="프로젝트 제목을 입력하세요" />
+        </div>
+        <div class="form-group">
+          <label>설명</label>
+          <textarea id="pp-desc" class="form-control" rows="3" placeholder="내용, 목표, 메모..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>상태</label>
+            <select id="pp-status" class="form-control">
+              <option value="planning">계획</option>
+              <option value="in_progress">진행 중</option>
+              <option value="review">검토</option>
+              <option value="completed">완료</option>
+              <option value="on_hold">보류</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>우선순위</label>
+            <select id="pp-priority" class="form-control">
+              <option value="low">낮음</option>
+              <option value="medium">보통</option>
+              <option value="high">높음</option>
+              <option value="urgent">긴급</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>시작일</label><input type="date" id="pp-start-date" class="form-control" /></div>
+          <div class="form-group"><label>마감일</label><input type="date" id="pp-end-date" class="form-control" /></div>
+        </div>
+        <div class="form-group">
+          <label>태그 <span style="color:var(--text-muted);font-size:12px">(쉼표로 구분)</span></label>
+          <input type="text" id="pp-tags" class="form-control" placeholder="기획, 디자인, 마케팅" />
+        </div>
+        <div class="form-group">
+          <label>진행률 — <span id="pp-progress-val">0%</span></label>
+          <input type="range" id="pp-progress" min="0" max="100" value="0" class="form-control" style="padding:6px 0" />
+        </div>
+        <div class="form-group">
+          <label>카드 색상</label>
+          <div class="pp-color-row" id="pp-color-row"></div>
+        </div>
+        <!-- 파일 첨부 -->
+        <div class="form-group">
+          <label><i class="fas fa-paperclip" style="color:var(--primary);margin-right:4px"></i>파일 첨부</label>
+          <div class="pp-attach-zone" id="pp-attach-zone">
+            <input type="file" id="pp-file-input" multiple
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.ai,.psd,.eps,.svg,.fig"
+              style="display:none" />
+            <i class="fas fa-paperclip" style="font-size:24px;margin-bottom:8px;display:block"></i>
+            <div>클릭 또는 드래그로 파일 첨부</div>
+            <small style="font-size:11px;margin-top:4px;display:block">최대 100MB · 이미지, 문서, 영상 등</small>
+          </div>
+          <div class="pp-file-preview" id="pp-file-preview"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-personal-project">취소</button>
+        <button class="btn btn-primary btn-upload-send" id="btn-save-personal-project"><i class="fas fa-paper-plane"></i> 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 개인 프로젝트 비밀번호 변경 모달 ══ -->
+  <div class="modal-overlay" id="modal-personal-pw" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">
+        <h2><i class="fas fa-key" style="color:var(--primary);margin-right:6px"></i>비밀번호 변경</h2>
+        <button class="modal-close" data-modal="modal-personal-pw"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="pw-change-info"><i class="fas fa-info-circle"></i> 개인 프로젝트 잠금 비밀번호를 변경합니다.</div>
+        <div class="form-group"><label>현재 비밀번호</label><input type="password" id="pp-pw-current" class="form-control" placeholder="현재 비밀번호" /></div>
+        <div class="form-group"><label>새 비밀번호</label><input type="password" id="pp-pw-new" class="form-control" placeholder="새 비밀번호 (4자 이상)" /></div>
+        <div class="form-group"><label>새 비밀번호 확인</label><input type="password" id="pp-pw-confirm" class="form-control" placeholder="동일하게 입력" /></div>
+        <div style="color:#E74C3C;font-size:12px;min-height:18px" id="pp-pw-err"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-sm" id="btn-reset-personal-pw" style="margin-right:auto"><i class="fas fa-undo"></i> 초기화</button>
+        <button class="btn btn-ghost" data-modal="modal-personal-pw">취소</button>
+        <button class="btn btn-primary" id="btn-save-personal-pw"><i class="fas fa-save"></i> 변경</button>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- ── 로그인 오버레이 ── -->
+  <div id="login-overlay" class="login-overlay hidden">
+    <div class="login-card">
+      <h2 class="login-title">ECLADO Cowork</h2>
+      <p class="login-subtitle">권한에 따라 접근 가능한 메뉴가 다릅니다.</p>
+
+      <!-- 로그인 모드 탭: 관리자 / 직원 -->
+      <div class="login-mode-tabs">
+        <button class="login-mode-tab active" id="tab-admin-login" onclick="switchLoginMode('admin')">
+          <i class="fas fa-shield-alt"></i> 관리자
+        </button>
+        <button class="login-mode-tab" id="tab-staff-login" onclick="switchLoginMode('staff')">
+          <i class="fas fa-user"></i> 직원
+        </button>
+      </div>
+
+      <!-- ── 관리자 로그인 폼 ── -->
+      <div id="admin-login-section">
+        <div class="login-role-tabs" style="margin-top:10px">
+          <button class="role-tab active" data-role="admin1"><i class="fas fa-crown"></i> 관리자 1</button>
+          <button class="role-tab" data-role="admin2"><i class="fas fa-shield-alt"></i> 관리자 2</button>
+        </div>
+        <form id="login-form" onsubmit="return false;" autocomplete="on">
+          <div class="form-group" style="margin-top:10px">
+            <label>아이디</label>
+            <input type="text" id="login-username" class="form-control" placeholder="아이디를 입력하세요" autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label>비밀번호</label>
+            <input type="password" id="login-password" class="form-control" placeholder="비밀번호를 입력하세요" autocomplete="current-password" />
+          </div>
+          <div class="login-hint" id="login-hint"></div>
+          <button type="submit" class="btn btn-primary login-btn" id="btn-login"><i class="fas fa-sign-in-alt"></i> 로그인</button>
+        </form>
+        <!-- 비밀번호 초기화 -->
+        <div class="login-reset-wrap">
+          <button class="login-reset-btn" id="btn-reset-pw" onclick="confirmResetPassword()">
+            <i class="fas fa-undo-alt"></i> 비밀번호 초기화
+          </button>
+          <span class="login-reset-desc">로그인이 안 될 때 클릭하세요</span>
+        </div>
+      </div>
+
+      <!-- ── 직원 로그인 폼 ── -->
+      <div id="staff-login-section" style="display:none">
+        <form id="staff-login-form" onsubmit="return false;" autocomplete="on" style="margin-top:10px">
+          <div class="form-group">
+            <label>이름</label>
+            <input type="text" id="staff-login-name" class="form-control" placeholder="등록된 이름을 입력하세요" autocomplete="name" />
+          </div>
+          <div class="form-group">
+            <label>비밀번호</label>
+            <input type="password" id="staff-login-pw" class="form-control" placeholder="개인 비밀번호를 입력하세요" autocomplete="current-password" />
+          </div>
+          <div class="login-hint" id="staff-login-hint"></div>
+          <button type="submit" class="btn btn-primary login-btn" id="btn-staff-login" onclick="handleStaffLogin()">
+            <i class="fas fa-sign-in-alt"></i> 직원 로그인
+          </button>
+        </form>
+        <p style="font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:10px">
+          <i class="fas fa-info-circle"></i> 비밀번호는 관리자가 등록 시 발급합니다.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ MODALS ═══════════════════════════ -->
+
+  <!-- 오너 프로필 수정 -->
+  <div class="modal-overlay" id="modal-owner-edit" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>프로필 수정</h2>
+        <button class="modal-close" data-modal="modal-owner-edit"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="owner-avatar-picker">
+          <div class="avatar avatar-xl" id="owner-preview-avatar" style="background:#1B3A6B">김</div>
+          <div class="avatar-color-row" id="avatar-color-row"></div>
+        </div>
+        <div class="form-group"><label>이름 *</label><input type="text" id="owner-name" class="form-control" placeholder="이름" /></div>
+        <div class="form-group"><label>직책</label><input type="text" id="owner-role-input" class="form-control" placeholder="직책 (예: CEO, 대표이사)" /></div>
+        <div class="form-group"><label>이메일</label><input type="email" id="owner-email" class="form-control" placeholder="이메일" /></div>
+        <div class="form-group"><label>부서</label><input type="text" id="owner-dept-input" class="form-control" placeholder="부서명" /></div>
+        <div class="form-group"><label>전화번호</label><input type="tel" id="owner-phone" class="form-control" placeholder="010-0000-0000" /></div>
+
+        <!-- 직원 로그인 시에만 표시되는 비밀번호 변경 섹션 -->
+        <div id="my-pw-change-section" style="display:none; margin-top:8px;">
+          <div class="my-pw-change-box">
+            <div class="my-pw-change-title"><i class="fas fa-lock" style="color:var(--primary);margin-right:6px;"></i>비밀번호 변경</div>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label>현재 비밀번호</label>
+              <div class="pw-input-wrap">
+                <input type="password" id="my-current-pw" class="form-control" placeholder="현재 비밀번호 입력" autocomplete="current-password" />
+                <button type="button" class="pw-eye-btn" onclick="togglePwVisibility('my-current-pw', this)"><i class="fas fa-eye"></i></button>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label>새 비밀번호</label>
+              <div class="pw-input-wrap">
+                <input type="password" id="my-new-pw" class="form-control" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password" />
+                <button type="button" class="pw-eye-btn" onclick="togglePwVisibility('my-new-pw', this)"><i class="fas fa-eye"></i></button>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>새 비밀번호 확인</label>
+              <div class="pw-input-wrap">
+                <input type="password" id="my-new-pw-confirm" class="form-control" placeholder="새 비밀번호 다시 입력" autocomplete="new-password" />
+                <button type="button" class="pw-eye-btn" onclick="togglePwVisibility('my-new-pw-confirm', this)"><i class="fas fa-eye"></i></button>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" style="margin-top:12px;width:100%;" onclick="changeMyPassword()"><i class="fas fa-key" style="margin-right:6px;"></i>비밀번호 변경하기</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-owner-edit">취소</button>
+        <button class="btn btn-primary" id="btn-save-owner">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 새 프로젝트 -->
+  <div class="modal-overlay" id="modal-project" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header"><h2 id="modal-project-title"><i class="fas fa-folder-plus" style="color:var(--primary)"></i> 새 프로젝트</h2><button class="modal-close" data-modal="modal-project"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>프로젝트 이름 *</label><input type="text" id="proj-title" class="form-control" placeholder="프로젝트 이름" /></div>
+        <div class="form-group">
+          <label>설명</label>
+          <textarea id="proj-desc" class="form-control" rows="3" placeholder="프로젝트 설명"></textarea>
+          <!-- 설명란 파일 첨부 영역 -->
+          <div class="proj-desc-attach-zone" id="proj-desc-attach-zone">
+            <input type="file" id="proj-desc-file-input" multiple
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.ai,.psd,.eps,.svg,.fig,.mp4,.mov,.avi"
+              style="display:none" onchange="handleProjDescFileSelect(event)" />
+            <button type="button" class="proj-desc-attach-btn" onclick="document.getElementById('proj-desc-file-input').click()">
+              <i class="fas fa-paperclip"></i> 파일 첨부
+            </button>
+            <span class="proj-desc-attach-hint">(이미지·영상·문서 최대 100MB, 드래그&amp;드롭 가능)</span>
+          </div>
+          <div class="proj-desc-preview" id="proj-desc-preview"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>상태</label><select id="proj-status" class="form-control"><option value="planning">계획</option><option value="in_progress">진행 중</option><option value="review">검토</option><option value="on_hold">보류</option></select></div>
+          <div class="form-group"><label>우선순위</label><select id="proj-priority" class="form-control"><option value="low">낮음</option><option value="medium">보통</option><option value="high">높음</option><option value="urgent">긴급</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>시작일</label><input type="date" id="proj-start" class="form-control" /></div>
+          <div class="form-group"><label>마감일</label><input type="date" id="proj-end" class="form-control" /></div>
+        </div>
+        <div class="form-group"><label>태그 (쉼표 구분)</label><input type="text" id="proj-tags" class="form-control" placeholder="개발, 디자인" /></div>
+        <!-- 담당 직원 멀티 선택 -->
+        <div class="form-group">
+          <label><i class="fas fa-users" style="color:var(--primary);margin-right:4px"></i> 담당 직원 <span style="font-size:11px;color:var(--text-muted);font-weight:400">(클릭하여 선택)</span></label>
+          <div class="proj-member-selector" id="proj-member-selector">
+            <div class="proj-member-search-row">
+              <input type="text" id="proj-member-search" class="form-control" placeholder="이름으로 검색..." oninput="filterProjMemberList()" />
+            </div>
+            <div class="proj-member-list" id="proj-member-list"></div>
+          </div>
+          <div class="proj-selected-members" id="proj-selected-members"></div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-modal="modal-project">취소</button><button class="btn btn-primary btn-upload-send" id="btn-save-project"><i class="fas fa-paper-plane"></i> 저장</button></div>
+      <input type="hidden" id="proj-id" />
+    </div>
+  </div>
+
+  <!-- 새 작업 -->
+  <div class="modal-overlay" id="modal-task" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header"><h2 id="modal-task-title">새 작업</h2><button class="modal-close" data-modal="modal-task"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>작업 이름 *</label><input type="text" id="task-title" class="form-control" placeholder="작업 이름" /></div>
+        <div class="form-group">
+          <label>설명</label>
+          <!-- 리치텍스트 에디터 툴바 -->
+          <div class="task-rte-toolbar">
+            <button type="button" class="task-rte-btn" title="굵게" onclick="taskFmt('bold')"><i class="fas fa-bold"></i></button>
+            <button type="button" class="task-rte-btn" title="기울임" onclick="taskFmt('italic')"><i class="fas fa-italic"></i></button>
+            <button type="button" class="task-rte-btn" title="취소선" onclick="taskFmt('strikethrough')"><i class="fas fa-strikethrough"></i></button>
+            <span class="task-rte-sep"></span>
+            <!-- 텍스트 색상 -->
+            <div class="rte-color-wrap" id="task-color-wrap">
+              <button type="button" class="task-rte-btn rte-color-btn" title="텍스트 색상" onclick="toggleColorPicker('task-color-picker')">
+                <i class="fas fa-font"></i><span class="rte-color-indicator" id="task-color-ind" style="background:#e53e3e"></span>
+              </button>
+              <div class="rte-color-picker" id="task-color-picker">
+                <div class="rte-cp-section-label">텍스트 색상</div>
+                <div class="rte-cp-swatches">
+                  <span class="rte-swatch" style="background:#1a202c" title="검정" onclick="applyTextColor('#1a202c','task-color-ind','task-desc-rich')"></span>
+                  <span class="rte-swatch" style="background:#4a5568" title="회색" onclick="applyTextColor('#4a5568','task-color-ind','task-desc-rich')"></span>
+                  <span class="rte-swatch" style="background:#e53e3e" title="빨강" onclick="applyTextColor('#e53e3e','task-color-ind','task-desc-rich')"></span>
+                  <span class="rte-swatch" style="background:#dd6b20" title="주황" onclick="applyTextColor('#dd6b20','task-color-ind','task-desc-rich')"></span>
+                  <span class="rte-swatch" style="background:#d69e2e" title="노랑" onclick="applyTextColor('#d69e2e','task-color-ind','task-desc-rich')"></span>
+                  <span class="rte-swatch" style="background:#38a169" title="초록" onclick="applyTextColor('#38a169','task-color-ind','task-desc-rich')"></span>
+                  <span class="rte-swatch" style="background:#3182ce" title="파랑" onclick="applyTextColor('#3182ce','task-color-ind','task-desc-rich')"></span>
+                  <span class="rte-swatch" style="background:#805ad5" title="보라" onclick="applyTextColor('#805ad5','task-color-ind','task-desc-rich')"></span>
+                  <span class="rte-swatch" style="background:#d53f8c" title="핑크" onclick="applyTextColor('#d53f8c','task-color-ind','task-desc-rich')"></span>
+                </div>
+                <div class="rte-cp-section-label" style="margin-top:8px">형광 하이라이트</div>
+                <div class="rte-cp-swatches">
+                  <span class="rte-swatch rte-swatch-hl" style="background:#ffff00" title="노랑 형광" onclick="applyHighlight('#ffff00','task-desc-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                  <span class="rte-swatch rte-swatch-hl" style="background:#b3f5b3" title="초록 형광" onclick="applyHighlight('#b3f5b3','task-desc-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                  <span class="rte-swatch rte-swatch-hl" style="background:#ffd6e0" title="핑크 형광" onclick="applyHighlight('#ffd6e0','task-desc-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                  <span class="rte-swatch rte-swatch-hl" style="background:#c8e6ff" title="하늘 형광" onclick="applyHighlight('#c8e6ff','task-desc-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                  <span class="rte-swatch rte-swatch-hl" style="background:#ffe0b3" title="주황 형광" onclick="applyHighlight('#ffe0b3','task-desc-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                  <span class="rte-swatch rte-swatch-hl" style="background:#e8d5ff" title="보라 형광" onclick="applyHighlight('#e8d5ff','task-desc-rich')"><i class="fas fa-check rte-hl-check"></i></span>
+                  <span class="rte-swatch rte-swatch-clear" title="하이라이트 제거" onclick="applyHighlight('','task-desc-rich')"><i class="fas fa-times"></i></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="task-desc-rich" class="task-desc-rich" contenteditable="true" data-placeholder="작업 내용, 요구사항, 참고사항 등..."></div>
+          <!-- 기존 textarea는 hidden으로 유지 (저장 로직 호환) -->
+          <textarea id="task-desc" style="display:none"></textarea>
+        </div>
+        <!-- 파일 첨부 영역 -->
+        <div class="form-group">
+          <label><i class="fas fa-paperclip" style="color:var(--primary);margin-right:5px"></i>파일 첨부 <span style="font-size:11px;color:var(--text-muted);font-weight:400">(이미지·영상·문서, 최대 100MB)</span></label>
+          <div class="task-attach-zone" id="task-attach-zone">
+            <input type="file" id="task-file-input" multiple
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.ai,.psd,.eps,.svg,.fig,.mp4,.mov,.avi,.wmv,.mkv"
+              style="display:none" onchange="handleTaskFileSelect(event)" />
+            <button type="button" class="task-attach-btn" onclick="document.getElementById('task-file-input').click()">
+              <i class="fas fa-paper-plane"></i> 파일 선택
+            </button>
+            <span class="task-attach-hint">또는 여기에 드래그 앤 드롭</span>
+          </div>
+          <div class="task-attach-preview" id="task-attach-preview"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>프로젝트</label><select id="task-project" class="form-control"></select></div>
+          <div class="form-group"><label>담당자</label><select id="task-assignee" class="form-control"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>상태</label><select id="task-status" class="form-control"><option value="todo">할 일</option><option value="in_progress">진행 중</option><option value="review">검토</option><option value="done">완료</option></select></div>
+          <div class="form-group"><label>우선순위</label><select id="task-priority" class="form-control"><option value="low">낮음</option><option value="medium">보통</option><option value="high">높음</option><option value="urgent">긴급</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>마감일</label><input type="date" id="task-due" class="form-control" /></div>
+          <div class="form-group"><label>태그 (쉼표 구분)</label><input type="text" id="task-tags" class="form-control" placeholder="개발, 버그" /></div>
+        </div>
+        <input type="hidden" id="task-id" />
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-modal="modal-task">취소</button><button class="btn btn-primary btn-upload-send" id="btn-save-task"><i class="fas fa-paper-plane"></i> 저장</button></div>
+    </div>
+  </div>
+
+  <!-- 작업 상세 -->
+  <div class="modal-overlay" id="modal-task-detail" role="dialog" aria-modal="true">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <h2 id="modal-task-detail-title">작업 상세</h2>
+        <div class="modal-header-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-edit-task"><i class="fas fa-edit"></i> 편집</button>
+          <button class="btn btn-danger btn-sm" id="btn-delete-task"><i class="fas fa-trash"></i></button>
+          <button class="modal-close" data-modal="modal-task-detail"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+      <div class="modal-body" id="task-detail-body" style="padding:0">
+        <!-- JS로 탭 구조 렌더 -->
+      </div>
+      <div class="modal-footer">
+        <div class="comment-input-wrap">
+          <button class="chat-action-btn" id="btn-task-comment-attach" title="파일 첨부"><i class="fas fa-paperclip"></i></button>
+          <input type="file" id="task-comment-file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.ai,.psd,.eps,.svg,.fig,.mp4,.mov,.avi,.wmv,.mkv" style="display:none" onchange="handleTaskCommentFile(event)" onclick="event.stopPropagation()" />
+          <input type="text" id="comment-input" class="form-control" placeholder="댓글 입력... (Enter로 전송)" />
+          <button class="btn btn-primary btn-send" id="btn-send-comment" title="전송"><i class="fas fa-paper-plane"></i></button>
+        </div>
+        <div id="comment-attach-preview" class="comment-attach-preview"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 프로젝트 상세 (탭 구조) -->
+  <div class="modal-overlay" id="modal-project-detail" role="dialog" aria-modal="true">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <h2 id="modal-proj-detail-title" style="margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">프로젝트 상세</h2>
+          <span id="proj-detail-status-badge"></span>
+          <span id="proj-detail-priority-badge"></span>
+        </div>
+        <div class="modal-header-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-edit-project"><i class="fas fa-edit"></i> 편집</button>
+          <button class="btn btn-danger btn-sm" id="btn-delete-project"><i class="fas fa-trash"></i></button>
+          <button class="modal-close" data-modal="modal-project-detail"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+      <!-- 탭 네비게이션 -->
+      <div class="proj-detail-tabs">
+        <button class="proj-tab-btn active" data-tab="overview"><i class="fas fa-info-circle"></i> 개요</button>
+        <button class="proj-tab-btn" data-tab="members"><i class="fas fa-users"></i> 담당 직원</button>
+        <button class="proj-tab-btn" data-tab="notes"><i class="fas fa-sticky-note"></i> 노트</button>
+        <button class="proj-tab-btn" data-tab="files"><i class="fas fa-paperclip"></i> 파일</button>
+        <button class="proj-tab-btn" data-tab="history"><i class="fas fa-history"></i> 이력</button>
+      </div>
+      <div class="modal-body proj-detail-body-wrap">
+        <!-- 개요 탭 -->
+        <div class="proj-tab-panel active" id="proj-tab-overview">
+          <div id="project-detail-body"></div>
+        </div>
+        <!-- 담당 직원 탭 -->
+        <div class="proj-tab-panel" id="proj-tab-members">
+          <div class="proj-member-panel">
+            <div class="proj-member-panel-header">
+              <span class="proj-panel-subtitle"><i class="fas fa-users"></i> 담당 직원 관리</span>
+              <button class="btn btn-primary btn-sm" onclick="openProjMemberEditor()"><i class="fas fa-user-plus"></i> 직원 추가/제거</button>
+            </div>
+            <div id="proj-member-panel-list"></div>
+          </div>
+        </div>
+        <!-- 노트 탭 -->
+        <div class="proj-tab-panel" id="proj-tab-notes">
+          <div class="proj-note-panel">
+            <div class="proj-note-write-area">
+              <textarea id="proj-note-input" class="form-control" rows="4" placeholder="프로젝트 관련 메모, 결정사항, 진행 내용 등을 자유롭게 입력하세요..."></textarea>
+              <div style="display:flex;justify-content:flex-end;margin-top:8px">
+                <button class="btn btn-primary btn-sm btn-upload-send" onclick="saveProjectNote()"><i class="fas fa-paper-plane"></i> 노트 추가</button>
+              </div>
+            </div>
+            <div id="proj-notes-list" style="margin-top:16px"></div>
+          </div>
+        </div>
+        <!-- 파일 탭 -->
+        <div class="proj-tab-panel" id="proj-tab-files">
+          <div class="proj-file-panel">
+            <div class="proj-file-upload-area" id="proj-file-drop-zone">
+              <i class="fas fa-paper-plane"></i>
+              <p>파일을 드래그하거나 클릭하여 업로드</p>
+              <small>이미지, 영상, PDF, 문서 등 (최대 100MB)</small>
+              <input type="file" id="proj-file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.ai,.psd,.eps,.svg,.fig,.mp4,.mov,.avi,.wmv,.mkv" style="display:none" onchange="handleProjFileUpload(event)" />
+            </div>
+            <div id="proj-files-list" style="margin-top:16px"></div>
+          </div>
+        </div>
+        <!-- 이력 탭 -->
+        <div class="proj-tab-panel" id="proj-tab-history">
+          <div id="proj-history-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 프로젝트 담당 직원 편집 모달 -->
+  <div class="modal-overlay" id="modal-proj-member-edit" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2><i class="fas fa-users" style="color:var(--primary)"></i> 담당 직원 편집</h2>
+        <button class="modal-close" data-modal="modal-proj-member-edit"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <input type="text" id="proj-me-search" class="form-control" placeholder="이름으로 검색..." oninput="filterProjMeList()" />
+        </div>
+        <div class="proj-member-list" id="proj-me-list" style="max-height:320px;overflow-y:auto"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px">현재 담당 직원</div>
+          <div id="proj-me-selected-list"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-proj-member-edit">취소</button>
+        <button class="btn btn-primary" onclick="saveProjMembers()"><i class="fas fa-save"></i> 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 팀원 초대 -->
+  <div class="modal-overlay" id="modal-member" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header"><h2 id="modal-member-title">팀원 초대</h2><button class="modal-close" data-modal="modal-member"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>이름 <span style="color:#e53e3e">*</span></label><input type="text" id="member-name" class="form-control" placeholder="이름" /></div>
+        <div class="form-group"><label>이메일 <span style="color:#e53e3e">*</span></label><input type="email" id="member-email" class="form-control" placeholder="이메일" /></div>
+        <!-- 개인 로그인 비밀번호 -->
+        <div class="form-group">
+          <label><i class="fas fa-key" style="color:var(--primary);margin-right:4px"></i>개인 로그인 비밀번호 <span style="color:#e53e3e">*</span></label>
+          <input type="password" id="member-login-pw" class="form-control" placeholder="직원이 사용할 비밀번호 (4자 이상)" autocomplete="new-password" />
+          <p style="font-size:11px;color:var(--text-muted);margin-top:4px"><i class="fas fa-info-circle"></i> 직원이 '직원 탭'으로 로그인할 때 사용하는 비밀번호입니다.</p>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>역할</label><select id="member-role" class="form-control">
+              <option value="general">총괄</option>
+              <option value="planner">기획</option>
+              <option value="marketer">마케터</option>
+              <option value="instructor">강사</option>
+              <option value="overseas_sales">해외영업</option>
+              <option value="management_support">경영지원</option>
+              <option value="accounting">회계</option>
+              <option value="designer">디자인</option>
+            </select></div>
+          <div class="form-group"><label>부서</label><select id="member-dept-select" class="form-control"><option value="">부서 선택</option></select></div>
+        </div>
+        <div class="form-group"><label>직책</label><input type="text" id="member-position" class="form-control" placeholder="직책 (예: 팀장, 대리)" /></div>
+        <input type="hidden" id="member-edit-id" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-member">취소</button>
+        <button class="btn btn-primary" id="btn-save-member"><i class="fas fa-paper-plane"></i> 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 관리자 직원 비밀번호 확인 모달 -->
+  <div class="modal-overlay" id="modal-member-pw-admin" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2><i class="fas fa-key" style="color:var(--primary);margin-right:8px"></i>직원 비밀번호 관리</h2>
+        <button class="modal-close" data-modal="modal-member-pw-admin"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="member-pw-admin-body"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-member-pw-admin">닫기</button>
+        <button class="btn btn-primary" id="btn-save-member-pw" onclick="saveMemberPwByAdmin()"><i class="fas fa-save"></i> 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 데이터 내보내기 모달 -->
+  <div class="modal-overlay" id="modal-export" role="dialog" aria-modal="true">
+    <div class="modal modal-export">
+      <div class="modal-header">
+        <h2><i class="fas fa-database" style="color:#F39C12;margin-right:8px"></i>데이터 내보내기 (Export)</h2>
+        <button class="modal-close" data-modal="modal-export"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="padding-bottom:4px;">
+
+        <!-- 형식 선택 -->
+        <div class="export-format-row">
+          <span class="export-section-label"><i class="fas fa-file-alt"></i> 파일 형식</span>
+          <div class="export-format-btns">
+            <label class="export-fmt-btn">
+              <input type="radio" name="export-fmt" value="json" checked onchange="onExportFmtChange()" />
+              <span><i class="fas fa-code"></i> JSON</span>
+            </label>
+            <label class="export-fmt-btn">
+              <input type="radio" name="export-fmt" value="csv" onchange="onExportFmtChange()" />
+              <span><i class="fas fa-table"></i> CSV</span>
+            </label>
+          </div>
+          <span id="export-fmt-hint" class="export-fmt-hint">JSON: 모든 필드·관계 보존, 재가져오기 가능</span>
+        </div>
+
+        <!-- 항목 선택 -->
+        <div class="export-section-label" style="margin:16px 0 10px"><i class="fas fa-check-square"></i> 내보낼 항목 선택</div>
+        <div class="export-items-grid" id="export-items-grid">
+          <label class="export-item-card" data-key="projects">
+            <input type="checkbox" value="projects" checked />
+            <i class="fas fa-project-diagram" style="color:#8E44AD"></i>
+            <span class="export-item-name">프로젝트</span>
+            <span class="export-item-count" id="exp-count-projects">0건</span>
+          </label>
+          <label class="export-item-card" data-key="tasks">
+            <input type="checkbox" value="tasks" checked />
+            <i class="fas fa-tasks" style="color:#27AE60"></i>
+            <span class="export-item-name">작업(업무지시)</span>
+            <span class="export-item-count" id="exp-count-tasks">0건</span>
+          </label>
+          <label class="export-item-card" data-key="members">
+            <input type="checkbox" value="members" checked />
+            <i class="fas fa-users" style="color:#1B3A6B"></i>
+            <span class="export-item-name">직원</span>
+            <span class="export-item-count" id="exp-count-members">0건</span>
+          </label>
+          <label class="export-item-card" data-key="departments">
+            <input type="checkbox" value="departments" checked />
+            <i class="fas fa-sitemap" style="color:#E67E22"></i>
+            <span class="export-item-name">부서</span>
+            <span class="export-item-count" id="exp-count-departments">0건</span>
+          </label>
+          <label class="export-item-card" data-key="calendar_events">
+            <input type="checkbox" value="calendar_events" checked />
+            <i class="fas fa-calendar-alt" style="color:#3182ce"></i>
+            <span class="export-item-name">캘린더 일정</span>
+            <span class="export-item-count" id="exp-count-calendar_events">0건</span>
+          </label>
+          <label class="export-item-card" data-key="messages">
+            <input type="checkbox" value="messages" />
+            <i class="fas fa-comments" style="color:#1ABC9C"></i>
+            <span class="export-item-name">메시지</span>
+            <span class="export-item-count" id="exp-count-messages">0건</span>
+          </label>
+          <label class="export-item-card" data-key="emails">
+            <input type="checkbox" value="emails" />
+            <i class="fas fa-envelope" style="color:#E74C3C"></i>
+            <span class="export-item-name">이메일</span>
+            <span class="export-item-count" id="exp-count-emails">0건</span>
+          </label>
+          <label class="export-item-card" data-key="comments">
+            <input type="checkbox" value="comments" />
+            <i class="fas fa-comment-dots" style="color:#805ad5"></i>
+            <span class="export-item-name">댓글</span>
+            <span class="export-item-count" id="exp-count-comments">0건</span>
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;margin:10px 0 4px;">
+          <button class="btn btn-ghost btn-sm" onclick="exportSelectAll(true)"><i class="fas fa-check-double"></i> 전체 선택</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportSelectAll(false)"><i class="fas fa-times"></i> 전체 해제</button>
+        </div>
+
+        <!-- 진행 상태 -->
+        <div id="export-progress-wrap" style="display:none;margin-top:14px;">
+          <div class="export-progress-label" id="export-progress-label">준비 중...</div>
+          <div class="export-progress-bar-track"><div class="export-progress-bar-fill" id="export-progress-bar" style="width:0%"></div></div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-export">닫기</button>
+        <button class="btn btn-primary" id="btn-do-export" onclick="doExport()">
+          <i class="fas fa-download"></i> 내보내기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 부서 등록 -->
+  <div class="modal-overlay" id="modal-dept" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header"><h2 id="modal-dept-title">부서 등록</h2><button class="modal-close" data-modal="modal-dept"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>부서명 *</label><input type="text" id="dept-name" class="form-control" placeholder="부서명" /></div>
+        <div class="form-group"><label>부서 코드</label><input type="text" id="dept-code" class="form-control" placeholder="DEV, MKT 등" /></div>
+        <div class="form-group"><label>설명</label><input type="text" id="dept-desc" class="form-control" placeholder="부서 역할 설명" /></div>
+        <div class="form-group"><label>부서 색상</label>
+          <div class="dept-color-row" id="dept-color-row"></div>
+          <input type="hidden" id="dept-color" value="#1B3A6B" />
+        </div>
+        <input type="hidden" id="dept-id" />
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-modal="modal-dept">취소</button><button class="btn btn-primary" id="btn-save-dept">저장</button></div>
+    </div>
+  </div>
+
+  <!-- 부서 직원 상세 -->
+  <div class="modal-overlay" id="modal-dept-detail" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 id="modal-dept-detail-title">부서 직원</h2>
+        <div class="modal-header-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-edit-dept"><i class="fas fa-edit"></i> 편집</button>
+          <button class="btn btn-danger btn-sm" id="btn-delete-dept"><i class="fas fa-trash"></i></button>
+          <button class="modal-close" data-modal="modal-dept-detail"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+      <div class="modal-body" id="dept-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- 새 채팅방 -->
+  <!-- ══ 전체 팀원 명단 모달 ══ -->
+  <div class="modal-overlay" id="modal-members-list" role="dialog" aria-modal="true">
+    <div class="modal modal-lg" style="max-width:680px">
+      <div class="modal-header">
+        <h2><i class="fas fa-users" style="color:var(--primary);margin-right:8px"></i>전체 팀원 명단</h2>
+        <button class="modal-close" data-modal="modal-members-list"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <!-- 검색 + 필터 -->
+        <div class="ml-toolbar">
+          <div class="search-box" style="flex:1"><i class="fas fa-search"></i>
+            <input type="text" id="ml-search" placeholder="이름·부서·직책 검색..." oninput="renderMembersListModal()" />
+          </div>
+          <select id="ml-dept-filter" class="select-field" onchange="renderMembersListModal()">
+            <option value="all">전체 부서</option>
+          </select>
+        </div>
+        <!-- 통계 바 -->
+        <div class="ml-stat-bar" id="ml-stat-bar"></div>
+        <!-- 팀원 목록 -->
+        <div class="ml-list" id="ml-list"></div>
+      </div>
+      <div class="modal-footer">
+        <span id="ml-count-label" style="font-size:13px;color:var(--text-muted);margin-right:auto"></span>
+        <button class="btn btn-ghost" onclick="showPage('members');closeModal('modal-members-list')"><i class="fas fa-external-link-alt"></i> 팀원 관리로 이동</button>
+        <button class="btn btn-ghost" data-modal="modal-members-list">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 툴 이름(로고) 수정 모달 ══ -->
+  <div class="modal-overlay" id="modal-logo-edit" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header">
+        <h2><i class="fas fa-signature" style="color:var(--primary);margin-right:8px"></i>툴 이름 수정</h2>
+        <button class="modal-close" data-modal="modal-logo-edit"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>툴 이름 <span style="font-size:11px;color:var(--text-muted);font-weight:400">(사이드바·로그인 화면에 표시)</span></label>
+          <input type="text" id="logo-name-input" class="form-control" placeholder="ECLADO Cowork" maxlength="30" />
+        </div>
+        <div class="form-group">
+          <label>브랜드 색상</label>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <input type="color" id="logo-color-input" class="form-control" style="width:60px;height:36px;padding:2px;cursor:pointer" value="#1B3A6B" />
+            <div style="display:flex;gap:6px;flex-wrap:wrap" id="logo-color-presets">
+              <button class="logo-color-chip" style="background:#1B3A6B" data-color="#1B3A6B" onclick="pickLogoColor('#1B3A6B')" title="군청색"></button>
+              <button class="logo-color-chip" style="background:#0F4C81" data-color="#0F4C81" onclick="pickLogoColor('#0F4C81')" title="딥블루"></button>
+              <button class="logo-color-chip" style="background:#2D6A4F" data-color="#2D6A4F" onclick="pickLogoColor('#2D6A4F')" title="포레스트그린"></button>
+              <button class="logo-color-chip" style="background:#6B2737" data-color="#6B2737" onclick="pickLogoColor('#6B2737')" title="버건디"></button>
+              <button class="logo-color-chip" style="background:#7B2D8B" data-color="#7B2D8B" onclick="pickLogoColor('#7B2D8B')" title="퍼플"></button>
+              <button class="logo-color-chip" style="background:#1A1A2E" data-color="#1A1A2E" onclick="pickLogoColor('#1A1A2E')" title="다크네이비"></button>
+              <button class="logo-color-chip" style="background:#C0392B" data-color="#C0392B" onclick="pickLogoColor('#C0392B')" title="레드"></button>
+              <button class="logo-color-chip" style="background:#E67E22" data-color="#E67E22" onclick="pickLogoColor('#E67E22')" title="오렌지"></button>
+            </div>
+          </div>
+        </div>
+        <!-- 미리보기 -->
+        <div class="form-group">
+          <label>미리보기</label>
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;overflow:hidden">
+            <svg width="100%" height="38" viewBox="0 0 420 56" xmlns="http://www.w3.org/2000/svg" id="logo-preview-svg" style="overflow:visible;display:block">
+              <text x="0" y="44" font-family="'Arial Black','Impact',sans-serif"
+                    font-size="38" font-weight="900" letter-spacing="1" fill="#1B3A6B" id="logo-preview-text">ECLADO Cowork</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-logo-edit">취소</button>
+        <button class="btn btn-ghost" onclick="resetLogoToDefault()"><i class="fas fa-undo"></i> 기본값</button>
+        <button class="btn btn-primary" onclick="saveLogoEdit()"><i class="fas fa-save"></i> 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 메신저 알림 설정 모달 ══ -->
+  <div class="modal-overlay" id="modal-notify-setting" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-header">
+        <h2><i class="fas fa-bell" style="color:var(--primary);margin-right:8px"></i>알림 설정</h2>
+        <button class="modal-close" data-modal="modal-notify-setting"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- 전체 알림 -->
+        <div class="notify-section">
+          <div class="notify-section-title"><i class="fas fa-bell-slash"></i> 전체 알림</div>
+          <div class="notify-row">
+            <div class="notify-row-info">
+              <span class="notify-row-label">모든 알림 끄기</span>
+              <span class="notify-row-desc">전체 메신저 알림을 음소거합니다</span>
+            </div>
+            <label class="notify-toggle">
+              <input type="checkbox" id="notify-mute-all" onchange="applyNotifySettings()" />
+              <span class="notify-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 알림 유형 -->
+        <div class="notify-section" id="notify-type-section">
+          <div class="notify-section-title"><i class="fas fa-sliders-h"></i> 알림 유형</div>
+          <div class="notify-row">
+            <div class="notify-row-info">
+              <span class="notify-row-label">새 메시지 알림</span>
+              <span class="notify-row-desc">채팅방에 새 메시지가 오면 알림</span>
+            </div>
+            <label class="notify-toggle">
+              <input type="checkbox" id="notify-new-msg" checked onchange="applyNotifySettings()" />
+              <span class="notify-slider"></span>
+            </label>
+          </div>
+          <div class="notify-row">
+            <div class="notify-row-info">
+              <span class="notify-row-label">멘션 알림 (@나)</span>
+              <span class="notify-row-desc">나를 언급한 메시지에만 알림</span>
+            </div>
+            <label class="notify-toggle">
+              <input type="checkbox" id="notify-mention" checked onchange="applyNotifySettings()" />
+              <span class="notify-slider"></span>
+            </label>
+          </div>
+          <div class="notify-row">
+            <div class="notify-row-info">
+              <span class="notify-row-label">파일/이미지 수신 알림</span>
+              <span class="notify-row-desc">파일·이미지·영상 메시지 알림</span>
+            </div>
+            <label class="notify-toggle">
+              <input type="checkbox" id="notify-file" checked onchange="applyNotifySettings()" />
+              <span class="notify-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 방해 금지 시간 -->
+        <div class="notify-section" id="notify-dnd-section">
+          <div class="notify-section-title"><i class="fas fa-moon"></i> 방해 금지 시간 (DND)</div>
+          <div class="notify-row">
+            <div class="notify-row-info">
+              <span class="notify-row-label">방해 금지 사용</span>
+              <span class="notify-row-desc">지정한 시간 동안 알림을 차단합니다</span>
+            </div>
+            <label class="notify-toggle">
+              <input type="checkbox" id="notify-dnd-enabled" onchange="toggleDndTime()" />
+              <span class="notify-slider"></span>
+            </label>
+          </div>
+          <div class="notify-dnd-time" id="notify-dnd-time" style="display:none">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div class="form-group" style="margin:0;flex:1;min-width:100px">
+                <label style="font-size:11px">시작 시간</label>
+                <input type="time" id="notify-dnd-start" class="form-control" value="22:00" onchange="applyNotifySettings()" />
+              </div>
+              <span style="color:var(--text-muted);margin-top:18px">~</span>
+              <div class="form-group" style="margin:0;flex:1;min-width:100px">
+                <label style="font-size:11px">종료 시간</label>
+                <input type="time" id="notify-dnd-end" class="form-control" value="08:00" onchange="applyNotifySettings()" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 채팅방별 설정 -->
+        <div class="notify-section">
+          <div class="notify-section-title"><i class="fas fa-comments"></i> 채팅방별 알림</div>
+          <div id="notify-room-list">
+            <p style="color:var(--text-muted);font-size:13px;padding:6px 0">채팅방을 불러오는 중...</p>
+          </div>
+        </div>
+
+        <!-- 알림 상태 미리보기 -->
+        <div class="notify-status-bar" id="notify-status-bar">
+          <i class="fas fa-bell" id="notify-status-icon"></i>
+          <span id="notify-status-text">알림 상태 로딩 중...</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-notify-setting">닫기</button>
+        <button class="btn btn-ghost" onclick="resetNotifySettings()"><i class="fas fa-undo"></i> 기본값</button>
+        <button class="btn btn-primary" onclick="saveNotifySettings()"><i class="fas fa-save"></i> 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 새 대화 / 단체 소통방 만들기 모달 -->
+  <div class="modal-overlay" id="modal-new-room" role="dialog" aria-modal="true">
+    <div class="modal modal-new-room-lg">
+      <div class="modal-header">
+        <h2 id="new-room-modal-title"><i class="fas fa-comments" style="color:var(--primary);margin-right:8px"></i>새 대화 시작</h2>
+        <button class="modal-close" data-modal="modal-new-room"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- 탭 -->
+        <div class="nr-tabs">
+          <button class="nr-tab active" id="nr-tab-dm" onclick="switchRoomTab('dm')"><i class="fas fa-user"></i> 1:1 대화</button>
+          <button class="nr-tab" id="nr-tab-group" onclick="switchRoomTab('group')"><i class="fas fa-users"></i> 단체 소통방</button>
+          <button class="nr-tab" id="nr-tab-channel" onclick="switchRoomTab('channel')"><i class="fas fa-hashtag"></i> 채널</button>
+        </div>
+
+        <div class="nr-modal-scroll">
+          <!-- 그룹/채널 전용: 방 이름 + 아이콘 -->
+          <div class="nr-section" id="room-name-group" style="display:none">
+            <div class="nr-room-name-row">
+              <button class="nr-icon-picker-btn" id="nr-icon-btn" onclick="openIconPicker()" title="아이콘 선택">👥</button>
+              <input type="text" id="new-room-name" class="form-control" placeholder="소통방 이름을 입력하세요" />
+            </div>
+            <!-- 이모지 피커 -->
+            <div class="nr-icon-picker" id="nr-icon-picker" style="display:none">
+              <div class="nr-icon-grid">
+                <span onclick="selectRoomIcon('👥')">👥</span>
+                <span onclick="selectRoomIcon('🏢')">🏢</span>
+                <span onclick="selectRoomIcon('📢')">📢</span>
+                <span onclick="selectRoomIcon('🎯')">🎯</span>
+                <span onclick="selectRoomIcon('🚀')">🚀</span>
+                <span onclick="selectRoomIcon('💡')">💡</span>
+                <span onclick="selectRoomIcon('🔥')">🔥</span>
+                <span onclick="selectRoomIcon('⚡')">⚡</span>
+                <span onclick="selectRoomIcon('🌟')">🌟</span>
+                <span onclick="selectRoomIcon('💬')">💬</span>
+                <span onclick="selectRoomIcon('🎉')">🎉</span>
+                <span onclick="selectRoomIcon('🛠️')">🛠️</span>
+                <span onclick="selectRoomIcon('📋')">📋</span>
+                <span onclick="selectRoomIcon('📊')">📊</span>
+                <span onclick="selectRoomIcon('🎨')">🎨</span>
+                <span onclick="selectRoomIcon('🏆')">🏆</span>
+                <span onclick="selectRoomIcon('🤝')">🤝</span>
+                <span onclick="selectRoomIcon('💼')">💼</span>
+                <span onclick="selectRoomIcon('🌈')">🌈</span>
+                <span onclick="selectRoomIcon('🎪')">🎪</span>
+                <span onclick="selectRoomIcon('🧩')">🧩</span>
+                <span onclick="selectRoomIcon('🔔')">🔔</span>
+                <span onclick="selectRoomIcon('📌')">📌</span>
+                <span onclick="selectRoomIcon('💪')">💪</span>
+                <span onclick="selectRoomIcon('🌍')">🌍</span>
+                <span onclick="selectRoomIcon('🎵')">🎵</span>
+                <span onclick="selectRoomIcon('🎮')">🎮</span>
+                <span onclick="selectRoomIcon('🏅')">🏅</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 공통: 참여자 검색 -->
+          <div class="nr-section">
+            <div class="search-box" style="width:100%"><i class="fas fa-search"></i><input type="text" id="room-member-search" placeholder="이름으로 검색..." oninput="filterRoomMemberList()" style="width:100%" /></div>
+          </div>
+
+          <!-- 참여자 목록 -->
+          <div class="nr-section" style="padding-top:6px">
+            <div class="nr-member-label" id="room-member-label">대화할 상대를 선택하세요</div>
+            <div class="member-check-list nr-member-list" id="member-check-list"></div>
+          </div>
+
+          <!-- 선택된 멤버 칩 (그룹/채널) -->
+          <div class="nr-section nr-chips-section" id="nr-selected-chips" style="display:none">
+            <div class="nr-member-label">선택된 참여자</div>
+            <div class="nr-chips-wrap" id="nr-chips-inner"></div>
+          </div>
+        </div>
+
+        <input type="hidden" id="room-type" value="dm" />
+        <input type="hidden" id="room-icon-value" value="👥" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-new-room">취소</button>
+        <button class="btn btn-primary" id="btn-create-room"><i class="fas fa-plus"></i> 대화 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 소통방 나가기 확인 모달 -->
+  <div class="modal-overlay" id="modal-leave-room" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2><i class="fas fa-sign-out-alt" style="color:#e53e3e;margin-right:8px"></i>소통방 나가기</h2>
+        <button class="modal-close" data-modal="modal-leave-room"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="leave-room-confirm-body">
+          <div class="lrc-icon"><i class="fas fa-door-open"></i></div>
+          <p class="lrc-title" id="leave-room-name-label">이 소통방을 나가시겠습니까?</p>
+          <p class="lrc-desc">나가면 채팅 내역을 볼 수 없으며,<br>다시 초대를 받아야 참여할 수 있습니다.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-leave-room">취소</button>
+        <button class="btn btn-danger" id="btn-confirm-leave-room"><i class="fas fa-sign-out-alt"></i> 나가기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 캘린더 일정 추가/수정 모달 ====== -->
+  <div class="modal-overlay" id="modal-cal-event" role="dialog" aria-modal="true">
+    <div class="modal modal-cal-event-lg">
+      <div class="modal-header">
+        <h2 id="cal-event-modal-title"><i class="fas fa-calendar-plus" style="color:var(--primary);margin-right:8px"></i>일정 추가</h2>
+        <button class="modal-close" data-modal="modal-cal-event"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="cal-event-id" />
+
+        <!-- 일정 제목 -->
+        <div class="form-group">
+          <label>일정 제목 <span style="color:#e53e3e">*</span></label>
+          <input type="text" id="cal-event-title" class="form-control" placeholder="일정 제목을 입력하세요" />
+        </div>
+
+        <!-- 색상 선택 -->
+        <div class="form-group">
+          <label>색상</label>
+          <div class="cal-color-picker">
+            <label class="cal-color-opt"><input type="radio" name="cal-color" value="blue" checked><span class="cal-color-dot" style="background:#3182ce"></span><span>파랑</span></label>
+            <label class="cal-color-opt"><input type="radio" name="cal-color" value="green"><span class="cal-color-dot" style="background:#38a169"></span><span>초록</span></label>
+            <label class="cal-color-opt"><input type="radio" name="cal-color" value="red"><span class="cal-color-dot" style="background:#e53e3e"></span><span>빨강</span></label>
+            <label class="cal-color-opt"><input type="radio" name="cal-color" value="orange"><span class="cal-color-dot" style="background:#dd6b20"></span><span>주황</span></label>
+            <label class="cal-color-opt"><input type="radio" name="cal-color" value="purple"><span class="cal-color-dot" style="background:#805ad5"></span><span>보라</span></label>
+            <label class="cal-color-opt"><input type="radio" name="cal-color" value="pink"><span class="cal-color-dot" style="background:#d53f8c"></span><span>핑크</span></label>
+          </div>
+        </div>
+
+        <!-- 종일 여부 -->
+        <div class="form-group">
+          <label class="cal-allday-label">
+            <input type="checkbox" id="cal-event-allday" onchange="toggleCalAllDay(this.checked)" checked />
+            <span>종일 일정</span>
+          </label>
+        </div>
+
+        <!-- 날짜/시간 -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>시작일 <span style="color:#e53e3e">*</span></label>
+            <input type="date" id="cal-event-start-date" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label>종료일</label>
+            <input type="date" id="cal-event-end-date" class="form-control" />
+          </div>
+        </div>
+        <div class="form-row" id="cal-time-row" style="display:none">
+          <div class="form-group">
+            <label>시작 시간</label>
+            <input type="time" id="cal-event-start-time" class="form-control" value="09:00" />
+          </div>
+          <div class="form-group">
+            <label>종료 시간</label>
+            <input type="time" id="cal-event-end-time" class="form-control" value="10:00" />
+          </div>
+        </div>
+
+        <!-- 메모 -->
+        <div class="form-group">
+          <label>메모</label>
+          <textarea id="cal-event-memo" class="form-control" rows="3" placeholder="메모를 입력하세요 (선택)"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger btn-sm" id="btn-delete-cal-event" style="margin-right:auto;display:none" onclick="deleteCalEvent()"><i class="fas fa-trash"></i> 삭제</button>
+        <button class="btn btn-ghost" data-modal="modal-cal-event">취소</button>
+        <button class="btn btn-primary" id="btn-save-cal-event" onclick="saveCalEvent()"><i class="fas fa-check"></i> 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 메시지 답글 스레드 모달 ====== -->
+  <div class="modal-overlay" id="modal-msg-thread" role="dialog" aria-modal="true">
+    <div class="modal modal-msg-thread-lg">
+      <div class="modal-header">
+        <h2><i class="fas fa-reply" style="color:var(--primary);margin-right:8px"></i>답글 스레드</h2>
+        <button class="modal-close" data-modal="modal-msg-thread"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body mth-body">
+
+        <!-- 원본 메시지 -->
+        <div class="mth-section-label">원본 메시지</div>
+        <div class="mth-original-wrap" id="mth-original-msg"></div>
+
+        <!-- 답글 구분선 -->
+        <div class="mth-divider"><i class="fas fa-comments"></i> 답글</div>
+
+        <!-- 답글 목록 -->
+        <div class="mth-replies-list" id="mth-replies-list">
+          <div class="mth-no-reply">첫 번째 답글을 남겨보세요!</div>
+        </div>
+
+        <!-- 답글 작성 -->
+        <div class="mth-reply-write">
+          <div class="mth-rw-inner">
+            <textarea id="mth-reply-input" class="form-control mth-reply-textarea" rows="2" placeholder="답글을 입력하세요... (Enter 전송, Shift+Enter 줄바꿈)"></textarea>
+            <button class="btn btn-primary btn-sm mth-send-btn" onclick="addThreadReply()"><i class="fas fa-paper-plane"></i></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 파일 상세 모달 (수정 / 삭제 / 댓글) ====== -->
+  <div class="modal-overlay" id="modal-file-detail" role="dialog" aria-modal="true">
+    <div class="modal modal-file-detail-lg">
+      <div class="modal-header">
+        <h2><i class="fas fa-paperclip" style="color:var(--primary);margin-right:8px"></i>파일 상세 / 댓글</h2>
+        <button class="modal-close" data-modal="modal-file-detail"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body fdm-body">
+
+        <!-- 미리보기 -->
+        <div id="fdm-preview-wrap"></div>
+
+        <!-- 파일 정보 -->
+        <div class="fdm-info-section">
+          <div class="fdm-info-row">
+            <label class="fdm-label">파일명 수정</label>
+            <input type="text" id="fdm-name-input" class="form-control fdm-name-input" placeholder="파일명" />
+          </div>
+          <div class="fdm-info-row">
+            <label class="fdm-label">설명 / 메모</label>
+            <textarea id="fdm-desc-input" class="form-control fdm-desc-input" rows="2" placeholder="이 파일에 대한 설명이나 메모를 남겨보세요..."></textarea>
+          </div>
+          <div class="fdm-meta-row">
+            <span id="fdm-file-name" class="fdm-file-name-badge"></span>
+            <span id="fdm-file-meta" class="fdm-file-meta-text"></span>
+          </div>
+          <div class="fdm-edit-actions">
+            <a id="fdm-dl-btn" class="btn btn-ghost btn-sm" style="display:none"><i class="fas fa-download"></i> 다운로드</a>
+            <button class="btn btn-primary btn-sm" onclick="saveFdmFileEdit()"><i class="fas fa-save"></i> 저장</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteFdmFile()"><i class="fas fa-trash"></i> 삭제</button>
+          </div>
+        </div>
+
+        <!-- 구분선 -->
+        <div class="fdm-divider"><i class="fas fa-comment-alt"></i> 댓글</div>
+
+        <!-- 댓글 목록 -->
+        <div class="fdm-comments-list" id="fdm-comments-list">
+          <div class="fdm-no-comment">댓글을 불러오는 중...</div>
+        </div>
+
+        <!-- 댓글 작성 -->
+        <div class="fdm-comment-write">
+          <div class="fdm-cmt-write-row">
+            <textarea id="fdm-comment-input" class="form-control fdm-cmt-textarea" rows="2" placeholder="댓글을 입력하세요..."></textarea>
+          </div>
+          <div class="fdm-cmt-write-actions">
+            <button class="btn btn-primary btn-sm" onclick="addFdmComment()"><i class="fas fa-paper-plane"></i> 등록</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 메일 작성 -->
+  <div class="modal-overlay" id="modal-compose" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header"><h2><i class="fas fa-pen" style="color:var(--primary);margin-right:6px"></i>새 메일 작성</h2><button class="modal-close" data-modal="modal-compose"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>받는 사람 *</label><select id="email-to" class="form-control" multiple style="height:80px"></select></div>
+        <div class="form-group"><label>참조 (CC)</label><select id="email-cc" class="form-control" multiple style="height:60px"></select></div>
+        <div class="form-group"><label>제목 *</label><input type="text" id="email-subject" class="form-control" placeholder="제목" /></div>
+        <div class="form-group"><label>본문</label><textarea id="email-body" class="form-control" rows="7" placeholder="내용을 입력하세요..."></textarea></div>
+        <div class="form-group"><label>태그 (쉼표 구분)</label><input type="text" id="email-tags-input" class="form-control" placeholder="업무, 보고" /></div>
+        <!-- ── 파일 첨부 영역 ── -->
+        <div class="form-group">
+          <label><i class="fas fa-paperclip" style="color:var(--primary);margin-right:4px"></i>파일 첨부 <span style="font-size:11px;color:var(--text-muted);font-weight:400">(이미지·문서·영상, 최대 100MB)</span></label>
+          <div class="email-attach-zone" id="email-attach-zone">
+            <input type="file" id="email-file-input" multiple
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.ai,.psd,.eps,.svg,.fig,.mp4,.mov"
+              style="display:none" onchange="handleEmailFileSelect(event)" />
+            <i class="fas fa-paper-plane" style="font-size:22px;color:var(--primary);margin-bottom:6px;display:block"></i>
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary)">클릭 또는 드래그하여 파일 첨부</div>
+            <small style="font-size:11px;color:var(--text-muted);margin-top:3px;display:block">이미지, PDF, 문서 등 최대 100MB</small>
+          </div>
+          <div class="email-attach-preview" id="email-attach-preview"></div>
+        </div>
+        <input type="hidden" id="reply-email-id" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-compose">취소</button>
+        <button class="btn btn-ghost" id="btn-save-draft"><i class="fas fa-save"></i> 임시저장</button>
+        <button class="btn btn-primary btn-upload-send" id="btn-send-email"><i class="fas fa-paper-plane"></i> 발송</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 팀원 이름/정보 수정 -->
+  <div class="modal-overlay" id="modal-member-edit" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>팀원 정보 수정</h2>
+        <button class="modal-close" data-modal="modal-member-edit"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+          <span class="avatar avatar-lg" id="edit-member-avatar" style="background:#1B3A6B">김</span>
+          <div>
+            <div id="edit-member-current-name" style="font-size:15px;font-weight:700"></div>
+            <div id="edit-member-current-role" style="font-size:12px;color:var(--text-muted)"></div>
+          </div>
+        </div>
+        <div class="form-group"><label>이름 *</label><input type="text" id="edit-member-name" class="form-control" placeholder="이름" /></div>
+        <div class="form-group"><label>이메일</label><input type="email" id="edit-member-email" class="form-control" placeholder="이메일" /></div>
+        <div class="form-row">
+          <div class="form-group"><label>역할</label>
+            <select id="edit-member-role" class="form-control">
+              <option value="general">총괄</option>
+              <option value="planner">기획</option>
+              <option value="marketer">마케터</option>
+              <option value="instructor">강사</option>
+              <option value="overseas_sales">해외영업</option>
+              <option value="management_support">경영지원</option>
+              <option value="accounting">회계</option>
+              <option value="designer">디자인</option>
+              <option value="owner">오너</option>
+            </select>
+          </div>
+          <div class="form-group"><label>부서</label><input type="text" id="edit-member-dept" class="form-control" placeholder="부서명" /></div>
+        </div>
+        <div class="form-group"><label>상태</label>
+          <select id="edit-member-status" class="form-control">
+            <option value="online">온라인</option>
+            <option value="away">자리비움</option>
+            <option value="offline">오프라인</option>
+          </select>
+        </div>
+        <div class="form-group"><label>아바타 색상</label>
+          <div class="avatar-color-row" id="edit-member-color-row"></div>
+          <input type="hidden" id="edit-member-color" value="#1B3A6B" />
+        </div>
+        <input type="hidden" id="edit-member-id" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-member-edit">취소</button>
+        <button class="btn btn-primary" id="btn-save-member-edit">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ 연차관리 모달들 ══════════ -->
+
+  <!-- 연차 직원 추가/수정 -->
+  <div class="modal-overlay" id="modal-leave-record" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 id="modal-leave-record-title"><i class="fas fa-user-plus" style="color:var(--primary)"></i> 직원 연차 등록</h2>
+        <button class="modal-close" data-modal="modal-leave-record"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- 수정 시 현재 상태 요약 -->
+        <div id="lr-current-summary" class="leave-record-summary" style="display:none"></div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>이름 *</label>
+            <input type="text" id="lr-name" class="form-control" placeholder="홍길동" />
+          </div>
+          <div class="form-group">
+            <label>부서</label>
+            <div style="display:flex;gap:6px">
+              <select id="lr-dept" class="form-control" style="flex:1" onchange="syncDeptInput(this.value)">
+                <option value="">부서 선택</option>
+              </select>
+              <input type="text" id="lr-dept-text" class="form-control" style="flex:1" placeholder="직접 입력" />
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>직책/역할</label>
+            <select id="lr-role" class="form-control">
+              <option value="general">총괄</option>
+              <option value="planner">기획</option>
+              <option value="marketer">마케터</option>
+              <option value="instructor">강사</option>
+              <option value="overseas_sales">해외영업</option>
+              <option value="management_support">경영지원</option>
+              <option value="accounting">회계</option>
+              <option value="designer">디자인</option>
+              <option value="owner">오너</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>연도</label>
+            <select id="lr-year" class="form-control"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>입사일 *</label>
+            <input type="date" id="lr-join-date" class="form-control" min="2017-01-01" max="2050-12-31" onchange="autoFillBaseDate()" />
+            <small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block">변경 시 기준일 자동 업데이트</small>
+          </div>
+          <div class="form-group">
+            <label>연차 기준일
+              <span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:4px">(입사일+1년, 수정 가능)</span>
+            </label>
+            <input type="date" id="lr-base-date" class="form-control" min="2017-01-01" max="2050-12-31" />
+            <small style="color:var(--accent-blue);font-size:11px;margin-top:4px;display:block" id="lr-base-date-hint"></small>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>발생 휴가일수 *
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-auto-calc" style="margin-left:8px;font-size:11px"><i class="fas fa-calculator"></i> 자동계산</button>
+            </label>
+            <input type="number" id="lr-granted" class="form-control" placeholder="0" min="0" max="30" step="0.5" />
+          </div>
+          <div class="form-group">
+            <label>연차 추가일수
+              <span style="font-size:10px;color:var(--text-muted);font-weight:400;margin-left:4px">(별도 추가 시)</span>
+            </label>
+            <input type="number" id="lr-extra-days" class="form-control"
+              placeholder="0" min="0" max="30" step="0.5" value="0"
+              oninput="syncExtraDaysFromCount()" />
+            <!-- 추가 연차 사용 기간 달력 -->
+            <div class="extra-date-range-wrap" id="extra-date-range-wrap">
+              <div class="extra-date-range-row">
+                <div class="extra-date-field">
+                  <label class="extra-date-lbl"><i class="fas fa-calendar-day"></i> 시작일</label>
+                  <input type="date" id="lr-extra-start" class="form-control extra-date-input"
+                    min="2000-01-01" max="2040-12-31"
+                    onchange="syncExtraDaysFromDates()" />
+                </div>
+                <span class="extra-date-tilde">~</span>
+                <div class="extra-date-field">
+                  <label class="extra-date-lbl"><i class="fas fa-calendar-day"></i> 종료일</label>
+                  <input type="date" id="lr-extra-end" class="form-control extra-date-input"
+                    min="2000-01-01" max="2040-12-31"
+                    onchange="syncExtraDaysFromDates()" />
+                </div>
+              </div>
+              <!-- 자동계산 결과 미리보기 -->
+              <div class="extra-date-preview" id="extra-date-preview" style="display:none">
+                <i class="fas fa-check-circle" style="color:#27AE60"></i>
+                <span id="extra-date-preview-text"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>연차일수 (법정)</label>
+            <input type="number" id="lr-total" class="form-control" placeholder="15" min="0" max="30" step="0.5" />
+          </div>
+          <div class="form-group">
+            <label>사용합계 직접 조정
+              <span class="lr-adj-badge" id="lr-adj-badge" style="display:none"></span>
+            </label>
+            <input type="number" id="lr-used-override" class="form-control" placeholder="미입력 시 기록 기반 자동계산" min="0" max="30" step="0.5" />
+            <small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block">휴가 기록과 다르게 조정할 때만 입력</small>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>비고 메모</label>
+          <input type="text" id="lr-note" class="form-control" placeholder="특이사항, 조정사유 등" />
+        </div>
+        <div class="leave-calc-info" id="leave-calc-info" style="display:none">
+          <i class="fas fa-info-circle"></i> <span id="leave-calc-text"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-leave-record">취소</button>
+        <button class="btn btn-primary" id="btn-save-leave-record"><i class="fas fa-save"></i> 저장</button>
+      </div>
+      <input type="hidden" id="lr-id" />
+      <input type="hidden" id="lr-member-id" />
+    </div>
+  </div>
+
+  <!-- 월별 휴가 사용기록 추가/수정 (엑셀 셀 클릭용) -->
+  <div class="modal-overlay" id="modal-lx-cell" role="dialog" aria-modal="true">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 id="modal-lx-cell-title"><i class="fas fa-calendar-plus" style="color:var(--accent-orange)"></i> 휴가 기록 입력</h2>
+        <button class="modal-close" data-modal="modal-lx-cell"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- 대상자 정보 배너 -->
+        <div class="lx-cell-target-banner" id="lx-cell-target-banner"></div>
+
+        <!-- 해당 월 기존 기록 목록 -->
+        <div id="lx-cell-existing-list"></div>
+
+        <!-- 구분선 -->
+        <div id="lx-cell-add-divider" class="lx-cell-divider">
+          <span>＋ 새 기록 추가</span>
+        </div>
+
+        <!-- 새 기록 입력 폼 -->
+        <div id="lx-cell-form-area">
+          <div class="form-row">
+            <div class="form-group">
+              <label>휴가 유형 *</label>
+              <select id="lx-type" class="form-control">
+                <option value="연차">연차</option>
+                <option value="반차(오전)">반차 (오전)</option>
+                <option value="반차(오후)">반차 (오후)</option>
+                <option value="병가">병가</option>
+                <option value="건강검진">건강검진</option>
+                <option value="경조사">경조사</option>
+                <option value="실업배상">실업배상</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>사용일수 *</label>
+              <input type="number" id="lx-days" class="form-control" placeholder="1" min="0.5" max="30" step="0.5" value="1" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>시작일 *</label>
+              <input type="date" id="lx-start" class="form-control" min="2017-01-01" max="2040-12-31" onchange="autoCalcLxDays()" />
+            </div>
+            <div class="form-group">
+              <label>종료일 * <span id="lx-days-hint" style="font-size:11px;color:var(--accent-blue);font-weight:400;margin-left:4px"></span></label>
+              <input type="date" id="lx-end" class="form-control" min="2017-01-01" max="2040-12-31" onchange="autoCalcLxDays()" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>사유</label>
+            <input type="text" id="lx-reason" class="form-control" placeholder="사유 입력 (선택)" />
+          </div>
+        </div>
+
+        <!-- 잔여 미리보기 -->
+        <div class="leave-remain-preview" id="lx-remain-preview"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal="modal-lx-cell">닫기</button>
+        <button class="btn btn-primary" id="btn-lx-cell-save"><i class="fas fa-plus"></i> 추가</button>
+      </div>
+      <input type="hidden" id="lx-record-id" />
+      <input type="hidden" id="lx-month" />
+    </div>
+  </div>
+
+  <!-- 연차관리 비밀번호 변경 (관리자1 전용) -->
+  <div class="modal-overlay" id="modal-leave-pw" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2><i class="fas fa-key" style="color:var(--primary)"></i> 연차관리 비밀번호 변경</h2>
+        <button class="modal-close" data-modal="modal-leave-pw"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="leave-pw-form" onsubmit="return false;" autocomplete="off">
+        <input type="text" name="username" style="display:none" autocomplete="username" />
+        <div class="modal-body">
+          <div class="form-group"><label>새 비밀번호 *</label><input type="password" id="new-leave-pw" class="form-control" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password" /></div>
+          <div class="form-group"><label>비밀번호 확인 *</label><input type="password" id="confirm-leave-pw" class="form-control" placeholder="비밀번호 재입력" autocomplete="new-password" /></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" data-modal="modal-leave-pw">취소</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-leave-pw"><i class="fas fa-save"></i> 변경</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 관리자 설정 (관리자1 전용) -->
+  <div class="modal-overlay" id="modal-admin-settings" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2><i class="fas fa-lock" style="color:var(--primary)"></i> 관리자 비밀번호 변경</h2>
+        <button class="modal-close" data-modal="modal-admin-settings"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="admin-pw-form" onsubmit="return false;">
+      <input type="text" name="username" autocomplete="username" style="display:none" />
+      <div class="modal-body">
+        <div class="form-group"><label>대상</label>
+          <select id="admin-pw-target" class="form-control">
+            <option value="admin1">관리자 1</option>
+            <option value="admin2">관리자 2</option>
+            <option value="member">일반 멤버</option>
+          </select>
+        </div>
+        <div class="form-group"><label>새 비밀번호</label><input type="password" id="new-admin-pw" class="form-control" placeholder="새 비밀번호" autocomplete="new-password" /></div>
+        <div class="form-group"><label>비밀번호 확인</label><input type="password" id="confirm-admin-pw" class="form-control" placeholder="비밀번호 재입력" autocomplete="new-password" /></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-modal="modal-admin-settings">취소</button>
+        <button type="submit" class="btn btn-primary" id="btn-save-admin-pw"><i class="fas fa-save"></i> 변경</button>
+      </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 토스트 -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- 작업 상세 첨부파일 탭 전용 hidden input (이벤트 충돌 방지용 — body 최상위 배치) -->
+  <input type="file" id="task-detail-file-input-global" multiple
+    accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.ai,.psd,.eps,.svg,.fig,.mp4,.mov,.avi,.wmv,.mkv"
+    style="display:none;position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none" />
+
+  <script src="js/app.js"></script>
+
+  <!-- ═══════ PWA 설치 안내 배너 ═══════ -->
+  <div id="pwa-install-banner" style="display:none;" role="banner" aria-label="앱 설치 안내">
+    <div class="pwa-banner-icon">
+      <img src="icons/icon.svg" alt="ECLADO 아이콘" width="44" height="44" />
+    </div>
+    <div class="pwa-banner-text">
+      <strong>ECLADO Cowork 앱 설치</strong>
+      <span>홈 화면에 추가해 앱처럼 사용하세요!</span>
+    </div>
+    <button id="pwa-install-btn" class="pwa-install-accept">설치</button>
+    <button id="pwa-install-dismiss" class="pwa-install-dismiss" aria-label="닫기">✕</button>
+  </div>
+
+  <!-- PWA 업데이트 알림 -->
+  <div id="pwa-update-banner" style="display:none;" role="alert">
+    <i class="fas fa-sync-alt" style="color:#38a169;margin-right:8px;"></i>
+    <span>새 버전이 있습니다.</span>
+    <button id="pwa-update-btn" class="pwa-install-accept" style="margin-left:auto;">지금 업데이트</button>
+    <button id="pwa-update-dismiss" class="pwa-install-dismiss" aria-label="닫기">✕</button>
+  </div>
+
+  <!-- ═══════ Service Worker + PWA 로직 ═══════ -->
+  <script>
+  (function() {
+    'use strict';
+
+    /* ── Service Worker 등록 ── */
+    let swRegistration = null;
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then(reg => {
+            swRegistration = reg;
+            console.log('[PWA] Service Worker 등록 완료:', reg.scope);
+
+            // 업데이트 감지
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // 새 버전 감지 → 업데이트 배너 표시
+                  showUpdateBanner(newWorker);
+                }
+              });
+            });
+          })
+          .catch(err => console.warn('[PWA] SW 등록 실패:', err));
+
+        // SW 컨트롤러 교체 시 자동 새로고침
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        });
+      });
+    }
+
+    /* ── 설치 배너 (beforeinstallprompt) ── */
+    let deferredPrompt = null;
+    const installBanner  = document.getElementById('pwa-install-banner');
+    const installBtn     = document.getElementById('pwa-install-btn');
+    const dismissBtn     = document.getElementById('pwa-install-dismiss');
+
+    // 이미 설치한 경우 배너 숨김
+    const dismissed = sessionStorage.getItem('pwa-banner-dismissed');
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!dismissed && installBanner) {
+        // 1.5초 후 부드럽게 표시
+        setTimeout(() => {
+          installBanner.style.display = 'flex';
+          requestAnimationFrame(() => installBanner.classList.add('pwa-banner-show'));
+        }, 1500);
+      }
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log('[PWA] 설치 선택:', outcome);
+        deferredPrompt = null;
+        hideBanner(installBanner);
+        if (outcome === 'accepted') {
+          showToastPwa('ECLADO 앱이 홈 화면에 추가되었습니다! 🎉');
+        }
+      });
+    }
+
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        sessionStorage.setItem('pwa-banner-dismissed', '1');
+        hideBanner(installBanner);
+      });
+    }
+
+    // 이미 standalone으로 실행 중이면 배너 불필요
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true) {
+      if (installBanner) installBanner.style.display = 'none';
+    }
+
+    /* ── 업데이트 배너 ── */
+    const updateBanner  = document.getElementById('pwa-update-banner');
+    const updateBtn     = document.getElementById('pwa-update-btn');
+    const updateDismiss = document.getElementById('pwa-update-dismiss');
+
+    function showUpdateBanner(worker) {
+      if (!updateBanner) return;
+      updateBanner.style.display = 'flex';
+      requestAnimationFrame(() => updateBanner.classList.add('pwa-banner-show'));
+      if (updateBtn) {
+        updateBtn.addEventListener('click', () => {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+          hideBanner(updateBanner);
+        });
+      }
+    }
+
+    if (updateDismiss) {
+      updateDismiss.addEventListener('click', () => hideBanner(updateBanner));
+    }
+
+    /* ── 헬퍼 ── */
+    function hideBanner(el) {
+      if (!el) return;
+      el.classList.remove('pwa-banner-show');
+      el.classList.add('pwa-banner-hide');
+      setTimeout(() => { el.style.display = 'none'; el.classList.remove('pwa-banner-hide'); }, 350);
+    }
+
+    function showToastPwa(msg) {
+      // app.js의 toast() 함수 재활용
+      if (typeof toast === 'function') { toast(msg, 'success'); return; }
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    /* ── iOS 전용 안내 (beforeinstallprompt 미지원) ── */
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isInStandalone = window.navigator.standalone;
+    if (isIos && !isInStandalone && !dismissed) {
+      setTimeout(() => {
+        if (installBanner) {
+          installBanner.querySelector('.pwa-banner-text strong').textContent = 'iPhone/iPad에서 홈 화면 추가';
+          installBanner.querySelector('.pwa-banner-text span').textContent   = '하단 공유 버튼 → "홈 화면에 추가" 탭!';
+          if (installBtn) installBtn.style.display = 'none'; // iOS는 버튼 없이 안내만
+          installBanner.style.display = 'flex';
+          requestAnimationFrame(() => installBanner.classList.add('pwa-banner-show'));
+        }
+      }, 2000);
+    }
+
+  })();
+  </script>
+</body>
+</html>
