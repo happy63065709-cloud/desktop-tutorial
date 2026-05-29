@@ -1261,7 +1261,7 @@
         </button>
 
         <!-- 일반 브라우저: Chrome/Safari 안내 -->
-        <button id="pwa-login-generic-btn" onclick="showIosInstallModal()" style="
+        <button id="pwa-login-generic-btn" onclick="showAndroidInstallModal()" style="
             display:none;width:100%;padding:13px 16px;border:1.5px solid #1B3A6B;
             border-radius:14px;background:#fff;
             color:#1B3A6B;font-size:15px;font-weight:700;
@@ -1388,6 +1388,107 @@
         <div style="color:#fff;">
           <div style="font-size:12.5px;font-weight:700;">먼저 이 창을 닫고</div>
           <div style="font-size:11.5px;opacity:.85;">Safari 하단 가운데 공유버튼(□↑)을 눌러주세요</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ Android 설치 안내 모달 — body 직접 자식 ═══════ -->
+  <div id="android-install-modal" style="display:none;">
+    <!-- 반투명 배경 -->
+    <div id="android-modal-bg" style="
+        position:fixed;inset:0;
+        z-index:2147483640;
+        background:rgba(0,0,0,0.6);
+        -webkit-tap-highlight-color:transparent;"></div>
+
+    <!-- 하단 시트 -->
+    <div id="android-modal-sheet" style="
+        position:fixed;bottom:0;left:0;right:0;
+        z-index:2147483647;
+        background:#fff;border-radius:24px 24px 0 0;
+        padding:20px 20px 40px;
+        max-width:480px;margin:0 auto;
+        transform:translateY(100%);
+        transition:transform .28s cubic-bezier(.32,1.2,.64,1);
+        -webkit-tap-highlight-color:transparent;">
+
+      <!-- 핸들바 + X버튼 행 -->
+      <div style="display:flex;align-items:center;margin-bottom:16px;">
+        <div style="flex:1;display:flex;justify-content:center;">
+          <div style="width:36px;height:4px;background:#e0e0e0;border-radius:2px;"></div>
+        </div>
+        <button id="android-modal-close-x" style="
+            background:#f0f0f0;border:none;border-radius:50%;
+            width:30px;height:30px;font-size:16px;cursor:pointer;
+            display:flex;align-items:center;justify-content:center;color:#555;
+            -webkit-tap-highlight-color:transparent;flex-shrink:0;">✕</button>
+      </div>
+
+      <!-- 헤더 -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <img src="icons/icon-192.png" style="width:44px;height:44px;border-radius:12px;flex-shrink:0;" alt="ECLADO"/>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#1B3A6B;">ECLADO Cowork</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">홈 화면에 추가하는 방법 (Android)</div>
+        </div>
+      </div>
+
+      <!-- 안내 카드들 — Chrome 메뉴 방식 -->
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+
+        <!-- Step 1: Chrome 주소창 우측 ⋮ 탭 -->
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#E8F5E9;border-radius:14px;border-left:4px solid #2E7D32;">
+          <div style="
+              width:30px;height:30px;border-radius:50%;background:#2E7D32;
+              color:#fff;font-size:14px;font-weight:800;flex-shrink:0;
+              display:flex;align-items:center;justify-content:center;">1</div>
+          <div style="flex:1;">
+            <div style="font-size:13.5px;font-weight:700;color:#2E7D32;">Chrome 우측 상단 ⋮ 탭</div>
+            <div style="font-size:11px;color:#555;margin-top:2px;">주소창 오른쪽 세 점(⋮) 메뉴</div>
+          </div>
+          <div style="
+              width:38px;height:38px;border-radius:10px;background:#4CAF50;
+              display:flex;align-items:center;justify-content:center;flex-shrink:0;
+              font-size:18px;color:#fff;font-weight:900;letter-spacing:-2px;">⋮</div>
+        </div>
+
+        <!-- Step 2: "홈 화면에 추가" 선택 -->
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#E8F5E9;border-radius:14px;border-left:4px solid #2E7D32;">
+          <div style="
+              width:30px;height:30px;border-radius:50%;background:#2E7D32;
+              color:#fff;font-size:14px;font-weight:800;flex-shrink:0;
+              display:flex;align-items:center;justify-content:center;">2</div>
+          <div style="flex:1;">
+            <div style="font-size:13.5px;font-weight:700;color:#2E7D32;">"홈 화면에 추가" 선택</div>
+            <div style="font-size:11px;color:#555;margin-top:2px;">메뉴에서 홈 화면에 추가를 탭</div>
+          </div>
+          <span style="font-size:24px;flex-shrink:0;">🏠</span>
+        </div>
+
+        <!-- Step 3: "추가" 탭 완료 -->
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#ECFDF5;border-radius:14px;border-left:4px solid #38a169;">
+          <div style="
+              width:30px;height:30px;border-radius:50%;background:#38a169;
+              color:#fff;font-size:14px;font-weight:800;flex-shrink:0;
+              display:flex;align-items:center;justify-content:center;">3</div>
+          <div style="flex:1;">
+            <div style="font-size:13.5px;font-weight:700;color:#38a169;">"추가" 탭 → 완료!</div>
+            <div style="font-size:11px;color:#555;margin-top:2px;">홈 화면에 ECLADO 아이콘이 생겨요 🎉</div>
+          </div>
+          <span style="font-size:24px;flex-shrink:0;">✅</span>
+        </div>
+      </div>
+
+      <!-- 안내 요약 박스 -->
+      <div style="
+          background:linear-gradient(135deg,#2E7D32,#388E3C);
+          border-radius:14px;padding:11px 14px;
+          display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">💡</span>
+        <div style="color:#fff;">
+          <div style="font-size:12.5px;font-weight:700;">먼저 이 창을 닫고</div>
+          <div style="font-size:11.5px;opacity:.85;">Chrome 우측 상단 ⋮ 메뉴를 눌러주세요</div>
         </div>
       </div>
     </div>
@@ -2818,15 +2919,15 @@
         return;
       }
       if (isIos) {
-        // iOS: 탭하면 안내 모달 팝업
+        // iOS Safari: 탭하면 iOS 안내 모달 팝업
         const btn = document.getElementById('pwa-login-ios-btn');
         if (btn) btn.style.display = 'flex';
       } else if (deferredPrompt) {
-        // Android Chrome: 바로 설치 버튼
+        // Android Chrome: beforeinstallprompt 수신 → 바로 설치 버튼
         const btn = document.getElementById('pwa-login-install-btn');
         if (btn) btn.style.display = 'flex';
       } else {
-        // 기타: 안내 모달 버튼
+        // Android/기타: 안내 모달 버튼 (Android 전용 안내 표시)
         const btn = document.getElementById('pwa-login-generic-btn');
         if (btn) btn.style.display = 'flex';
       }
@@ -2850,8 +2951,9 @@
     window.triggerPwaInstall = async function() {
       const btn = document.getElementById('pwa-login-install-btn');
       if (!deferredPrompt) {
-        // prompt 없으면 안내 모달로 폴백
-        showIosInstallModal(); return;
+        // prompt 없으면 기기에 맞는 안내 모달로 폴백
+        if (isIos) showIosInstallModal(); else showAndroidInstallModal();
+        return;
       }
       if (btn) { btn.style.opacity = '0.7'; btn.textContent = '설치 중...'; }
       deferredPrompt.prompt();
@@ -2869,45 +2971,57 @@
       }
     };
 
-    /* ── iOS 안내 모달 표시/닫기 (body 레벨 — z-index 충돌 없음) ── */
-    window.showIosInstallModal = function() {
-      var modal = document.getElementById('ios-install-modal');
-      var sheet = document.getElementById('ios-modal-sheet');
+    /* ── 공통 모달 open/close 헬퍼 ── */
+    function _openSheet(modalId, sheetId) {
+      var modal = document.getElementById(modalId);
+      var sheet = document.getElementById(sheetId);
       if (!modal) return;
       modal.style.display = 'block';
-      // 두 프레임 뒤에 transform 적용해야 CSS transition이 작동
       requestAnimationFrame(function() {
         requestAnimationFrame(function() {
           if (sheet) sheet.style.transform = 'translateY(0)';
         });
       });
-    };
-    window.closeIosModal = function() {
-      var sheet = document.getElementById('ios-modal-sheet');
-      var modal = document.getElementById('ios-install-modal');
+    }
+    function _closeSheet(modalId, sheetId) {
+      var sheet = document.getElementById(sheetId);
+      var modal = document.getElementById(modalId);
       if (sheet) sheet.style.transform = 'translateY(100%)';
-      setTimeout(function() {
-        if (modal) modal.style.display = 'none';
-      }, 300);
-    };
-    // 버튼 이벤트 — 스크립트 실행 시 즉시 등록 (DOMContentLoaded 이미 지난 후이므로 즉시 실행)
-    (function bindIosModalEvents() {
-      function addClose(id) {
+      setTimeout(function() { if (modal) modal.style.display = 'none'; }, 300);
+    }
+    function _bindClose(modalId, sheetId, ids) {
+      ids.forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.addEventListener('click', function(e) {
-          e.stopPropagation(); // 버블링 차단 — 다른 핸들러 트리거 방지
-          closeIosModal();
+          e.stopPropagation();
+          _closeSheet(modalId, sheetId);
         });
-      }
-      addClose('ios-modal-close-btn');
-      addClose('ios-modal-close-x');
-      // 배경 클릭으로도 닫힘
-      var bg = document.getElementById('ios-modal-bg');
-      if (bg) bg.addEventListener('click', function(e) {
-        e.stopPropagation();
-        closeIosModal();
       });
+    }
+
+    /* ── iOS 안내 모달 ── */
+    window.showIosInstallModal = function() {
+      _openSheet('ios-install-modal', 'ios-modal-sheet');
+    };
+    window.closeIosModal = function() {
+      _closeSheet('ios-install-modal', 'ios-modal-sheet');
+    };
+    (function() {
+      _bindClose('ios-install-modal', 'ios-modal-sheet',
+        ['ios-modal-close-x', 'ios-modal-close-btn', 'ios-modal-bg']);
+    })();
+
+    /* ── Android 안내 모달 ── */
+    window.showAndroidInstallModal = function() {
+      _openSheet('android-install-modal', 'android-modal-sheet');
+    };
+    window.closeAndroidModal = function() {
+      _closeSheet('android-install-modal', 'android-modal-sheet');
+    };
+    (function() {
+      _bindClose('android-install-modal', 'android-modal-sheet',
+        ['android-modal-close-x', 'android-modal-bg']);
     })();
 
     /* ── 페이지 로드 시 초기화 ── */
