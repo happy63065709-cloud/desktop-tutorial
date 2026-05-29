@@ -26,38 +26,28 @@ const State = {
 };
 
 /* ─── 권한 설정 ─── */
-// 비밀번호를 서버 DB(credentials 테이블)에 저장 — 모든 기기 동일하게 유지
-// 메모리 캐시: 서버 응답 후 업데이트, 로그인 전 기본값으로 폴백
-let _credCache = null; // { admin1, admin2, member, _recordId }
+// 비밀번호를 JSONBlob 클라우드에 저장 — PC·모바일 모든 기기 동기화
+// https://jsonblob.com — 무료, 키 불필요, CORS 허용
+const _BLOB_ID   = '019e74d5-2a09-7b67-9cd9-57220ed5a02c';
+const _BLOB_URL  = `https://jsonblob.com/api/jsonBlob/${_BLOB_ID}`;
+let _credCache   = null; // { admin1, admin2, member }
 const CRED_DEFAULTS = { admin1: 'eclado1', admin2: 'eclado2', member: 'eclado' };
 
-// 서버에서 비밀번호 로드 (init 시 1회 호출)
+// 클라우드에서 비밀번호 로드 (앱 시작 시 1회)
 async function loadCredentials() {
   try {
-    const res = await fetch('tables/credentials?limit=10');
+    const res  = await fetch(_BLOB_URL, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const rows = data.data || [];
-    // id='main' 레코드 찾기
-    const rec = rows.find(r => r.id === 'main') || rows[0];
-    if (rec) {
-      _credCache = {
-        admin1: rec.admin1 || CRED_DEFAULTS.admin1,
-        admin2: rec.admin2 || CRED_DEFAULTS.admin2,
-        member: rec.member || CRED_DEFAULTS.member,
-        _recordId: rec.id,
-      };
-    } else {
-      // 레코드 없으면 기본값으로 생성
-      const created = await fetch('tables/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: 'main', ...CRED_DEFAULTS }),
-      }).then(r => r.json());
-      _credCache = { ...CRED_DEFAULTS, _recordId: created.id };
-    }
+    _credCache = {
+      admin1: data.admin1 || CRED_DEFAULTS.admin1,
+      admin2: data.admin2 || CRED_DEFAULTS.admin2,
+      member: data.member || CRED_DEFAULTS.member,
+    };
+    console.log('[ECLADO] 계정 정보 로드 완료 (클라우드 동기화)');
   } catch(e) {
-    console.warn('[ECLADO] credentials 로드 실패, 기본값 사용:', e);
-    _credCache = { ...CRED_DEFAULTS, _recordId: 'main' };
+    console.warn('[ECLADO] 클라우드 로드 실패, 기본값 사용:', e.message);
+    _credCache = { ...CRED_DEFAULTS };
   }
   // 구버전 localStorage 잔재 제거
   try { localStorage.removeItem('eclado_credentials'); } catch(_) {}
@@ -68,21 +58,23 @@ function getCredentials() {
   return _credCache || { ...CRED_DEFAULTS };
 }
 
-// 비밀번호 서버 저장 후 캐시 갱신
+// 비밀번호 클라우드 저장 + 캐시 갱신 (PC·모바일 즉시 반영)
 async function saveCredentials(newValues) {
-  const recId = (_credCache && _credCache._recordId) || 'main';
+  const current = getCredentials();
   const payload = {
-    admin1: newValues.admin1 || getCredentials().admin1,
-    admin2: newValues.admin2 || getCredentials().admin2,
-    member: newValues.member || getCredentials().member,
+    admin1: newValues.admin1 !== undefined ? newValues.admin1 : current.admin1,
+    admin2: newValues.admin2 !== undefined ? newValues.admin2 : current.admin2,
+    member: newValues.member !== undefined ? newValues.member : current.member,
   };
   try {
-    await fetch(`tables/credentials/${recId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+    const res = await fetch(_BLOB_URL, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body:    JSON.stringify(payload),
     });
-    _credCache = { ..._credCache, ...payload };
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    _credCache = { ...payload };
+    console.log('[ECLADO] 비밀번호 클라우드 저장 완료');
   } catch(e) {
     console.error('[ECLADO] 비밀번호 저장 실패:', e);
     throw e;
