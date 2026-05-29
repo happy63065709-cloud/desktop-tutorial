@@ -2971,58 +2971,9 @@
       }
     };
 
-    /* ── 공통 모달 open/close 헬퍼 ── */
-    function _openSheet(modalId, sheetId) {
-      var modal = document.getElementById(modalId);
-      var sheet = document.getElementById(sheetId);
-      if (!modal) return;
-      modal.style.display = 'block';
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          if (sheet) sheet.style.transform = 'translateY(0)';
-        });
-      });
-    }
-    function _closeSheet(modalId, sheetId) {
-      var sheet = document.getElementById(sheetId);
-      var modal = document.getElementById(modalId);
-      if (sheet) sheet.style.transform = 'translateY(100%)';
-      setTimeout(function() { if (modal) modal.style.display = 'none'; }, 300);
-    }
-    function _bindClose(modalId, sheetId, ids) {
-      ids.forEach(function(id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('click', function(e) {
-          e.stopPropagation();
-          _closeSheet(modalId, sheetId);
-        });
-      });
-    }
+    /* ── 모달 헬퍼는 하단 전역 <script>에서 정의됨 ── */
 
-    /* ── iOS 안내 모달 ── */
-    window.showIosInstallModal = function() {
-      _openSheet('ios-install-modal', 'ios-modal-sheet');
-    };
-    window.closeIosModal = function() {
-      _closeSheet('ios-install-modal', 'ios-modal-sheet');
-    };
-    (function() {
-      _bindClose('ios-install-modal', 'ios-modal-sheet',
-        ['ios-modal-close-x', 'ios-modal-close-btn', 'ios-modal-bg']);
-    })();
-
-    /* ── Android 안내 모달 ── */
-    window.showAndroidInstallModal = function() {
-      _openSheet('android-install-modal', 'android-modal-sheet');
-    };
-    window.closeAndroidModal = function() {
-      _closeSheet('android-install-modal', 'android-modal-sheet');
-    };
-    (function() {
-      _bindClose('android-install-modal', 'android-modal-sheet',
-        ['android-modal-close-x', 'android-modal-bg']);
-    })();
+    /* ── iOS / Android 모달 함수는 하단 전역 <script>에서 정의됨 ── */
 
     /* ── 페이지 로드 시 초기화 ── */
     window.addEventListener('load', () => {
@@ -3139,6 +3090,43 @@
     });
 
   })();
+  </script>
+
+  <!-- ═══ 모달 닫기 함수 — 전역 스코프 (onclick 인라인에서 직접 호출) ═══ -->
+  <script>
+  /* 시트 슬라이드 내리기 → 300ms 후 숨김 */
+  function _slideClose(modalId, sheetId) {
+    var sheet = document.getElementById(sheetId);
+    var modal = document.getElementById(modalId);
+    if (sheet) sheet.style.transform = 'translateY(100%)';
+    setTimeout(function() { if (modal) modal.style.display = 'none'; }, 300);
+  }
+  /* 시트 슬라이드 올리기 */
+  function _slideOpen(modalId, sheetId) {
+    var modal = document.getElementById(modalId);
+    var sheet = document.getElementById(sheetId);
+    if (!modal) return;
+    modal.style.display = 'block';
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        if (sheet) sheet.style.transform = 'translateY(0)';
+      });
+    });
+  }
+
+  /* iOS 모달 */
+  function closeIosModal()          { _slideClose('ios-install-modal',     'ios-modal-sheet'); }
+  function showIosInstallModal()    { _slideOpen('ios-install-modal',      'ios-modal-sheet'); }
+
+  /* Android 모달 */
+  function closeAndroidModal()      { _slideClose('android-install-modal', 'android-modal-sheet'); }
+  function showAndroidInstallModal(){ _slideOpen('android-install-modal',  'android-modal-sheet'); }
+
+  /* window에도 등록 (혹시 다른 곳에서 window.* 로 호출 시 대비) */
+  window.closeIosModal           = closeIosModal;
+  window.showIosInstallModal     = showIosInstallModal;
+  window.closeAndroidModal       = closeAndroidModal;
+  window.showAndroidInstallModal = showAndroidInstallModal;
   </script>
 </body>
 </html>
