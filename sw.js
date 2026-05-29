@@ -1,5 +1,5 @@
 /* ECLADO Cowork — Service Worker (캐시 없음 버전) */
-const CACHE_NAME = 'eclado-v9';
+const CACHE_NAME = 'eclado-v10';
 
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => {
