@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: eclado-cowork
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    disk:
+      name: eclado-data
+      mountPath: /data
+      sizeGB: 1

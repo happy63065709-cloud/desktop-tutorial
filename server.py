@@ -19,9 +19,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 데이터 저장 디렉토리
-DATA_DIR = Path(__file__).parent / "data"
-DATA_DIR.mkdir(exist_ok=True)
+# 데이터 저장 디렉토리 (Render 디스크: /data, 로컬: ./data)
+DATA_DIR = Path(os.environ.get("DATA_DIR", "/data" if os.path.exists("/data") else str(Path(__file__).parent / "data")))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 TABLES = [
     "projects", "tasks", "members", "comments",
