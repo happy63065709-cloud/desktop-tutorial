@@ -8089,7 +8089,7 @@ let _personalStatusFilter = 'all';
 const PP_COLORS = ['#1B3A6B','#4A90E2','#27AE60','#E67E22','#E74C3C','#8E44AD','#1ABC9C','#F39C12'];
 
 function getPersonalPw() {
-  return localStorage.getItem(PERSONAL_PW_KEY) || 'personal1234';
+  return localStorage.getItem(PERSONAL_PW_KEY) || '0311';
 }
 
 function unlockPersonal() {
@@ -8423,10 +8423,10 @@ function savePersonalPwChange() {
 }
 
 function resetPersonalPw() {
-  if (!confirm('비밀번호를 초기값(personal1234)으로 초기화하시겠습니까?')) return;
+  if (!confirm('비밀번호를 초기값(0311)으로 초기화하시겠습니까?')) return;
   localStorage.removeItem(PERSONAL_PW_KEY);
   closeModal('modal-personal-pw');
-  toast('비밀번호가 초기화되었습니다. (personal1234)', 'info');
+  toast('비밀번호가 초기화되었습니다. (0311)', 'info');
 }
 
 /* ============================================================
