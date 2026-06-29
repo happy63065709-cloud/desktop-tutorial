@@ -3900,7 +3900,7 @@ const LeaveState = {
 /* ── 비밀번호 유틸 ── */
 function getLeavePassword() {
   try { const s = localStorage.getItem('eclado_leave_pw'); if (s) return s; } catch(e) {}
-  return 'leave1234';
+  return 'eclado1998';
 }
 function saveLeavePassword(pw) { localStorage.setItem('eclado_leave_pw', pw); }
 
